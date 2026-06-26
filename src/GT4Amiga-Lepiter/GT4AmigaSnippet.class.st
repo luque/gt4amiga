@@ -94,6 +94,19 @@ GT4AmigaSnippet >> isEmpty [
 	^ code isNil or: [ code isEmpty ]
 ]
 
+{ #category : #lepiter }
+GT4AmigaSnippet >> viewModelClass [
+	^ GT4AmigaSnippetViewModel
+]
+
+{ #category : #lepiter }
+GT4AmigaSnippet >> asElement [
+	"Direct element creation for use in GToolkit inspector/playground."
+	^ GT4AmigaSnippetElement new
+		snippet: self;
+		yourself
+]
+
 { #category : #serialization }
 GT4AmigaSnippet >> jsonDictionary [
 	^ super jsonDictionary
@@ -106,4 +119,29 @@ GT4AmigaSnippet >> updateFromJson: aJsonDictionary [
 	super updateFromJson: aJsonDictionary.
 	(aJsonDictionary includesKey: 'code')
 		ifTrue: [ code := aJsonDictionary at: 'code' ]
+]
+
+{ #category : #'gt-extensions' }
+GT4AmigaSnippet >> gtViewCodeFor: aView [
+	<gtView>
+	^ aView textEditor
+		title: 'Code';
+		priority: 5;
+		text: [ code asRopedText ]
+]
+
+{ #category : #'gt-extensions' }
+GT4AmigaSnippet >> gtActionAssembleFor: anAction [
+	<gtAction>
+	^ anAction button
+		label: 'Assemble';
+		action: [ self assemble ]
+]
+
+{ #category : #'gt-extensions' }
+GT4AmigaSnippet >> gtActionRunFor: anAction [
+	<gtAction>
+	^ anAction button
+		label: 'Run on FS-UAE';
+		action: [ self assembleAndRun ]
 ]

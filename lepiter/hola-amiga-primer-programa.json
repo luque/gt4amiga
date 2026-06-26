@@ -1,0 +1,54 @@
+{
+	"pageType" : {
+		"__type" : "namedPage",
+		"title" : "Hola Amiga — Primer Programa 68000"
+	},
+	"children" : {
+		"__type" : "snippets",
+		"items" : [
+			{
+				"__type" : "textSnippet",
+				"uid" : { "__type" : "LepiterUID", "uid" : "r3n0WzP9mGkYoAqBzXt1AA==" },
+				"createTime" : { "__type" : "time", "time" : "2026-06-26T23:00:00+02:00" },
+				"editTime" : { "__type" : "time", "time" : "2026-06-26T23:00:00+02:00" },
+				"string" : "# Hola Amiga — Primer Programa 68000\n\nEl **Commodore Amiga** utiliza el procesador **Motorola 68000**, una CPU de 16/32 bits que corría a **7.09 MHz** (PAL) en el modelo A500. A diferencia de otras plataformas de la época, el Amiga delega la mayoría de las tareas de E/S a chips personalizados:\n\n| Chip | Función |\n|------|--------|\n| **Agnus** / **Alice** | DMA, Copper, Blitter |\n| **Denise** / **Lisa** | Gráficos, sprites, playfields |\n| **Paula** | Audio, disco, puerto serie |\n\nEstos chips se comunican con la CPU a través de **registros mapeados en memoria** a partir de la dirección `$DFF000`.",
+				"children" : { "__type" : "snippets", "items" : [] }
+			},
+			{
+				"__type" : "textSnippet",
+				"uid" : { "__type" : "LepiterUID", "uid" : "s4o1XAQ0nHlZpBrCAYu2BB==" },
+				"createTime" : { "__type" : "time", "time" : "2026-06-26T23:00:00+02:00" },
+				"editTime" : { "__type" : "time", "time" : "2026-06-26T23:00:00+02:00" },
+				"string" : "## El Mecanismo de Llamada a Librerías de AmigaOS\n\nAmigaOS expone sus funciones a través de **librerías**. La convención de llamada es:\n\n1. Cargar la dirección base de la librería en el registro `a6`\n2. Llamar a la función mediante `jsr` con un **offset negativo** fijo desde esa base\n3. Los parámetros se pasan en registros `d0–d7` / `a0–a5` (no en la pila)\n\n```\nmove.l  4.w, a6        ; ExecBase siempre en $0000.0004\nlea     nombre, a1     ; parámetro: nombre de librería\nmoveq   #0, d0         ; parámetro: versión mínima\njsr     -552(a6)       ; Exec OpenLibrary()\n```\n\n**`ExecBase`** (la librería raíz de todo AmigaOS) siempre está disponible en la dirección de memoria `$4`.",
+				"children" : { "__type" : "snippets", "items" : [] }
+			},
+			{
+				"__type" : "textSnippet",
+				"uid" : { "__type" : "LepiterUID", "uid" : "t5p2YBR1oImaqCsDBAv3CC==" },
+				"createTime" : { "__type" : "time", "time" : "2026-06-26T23:00:00+02:00" },
+				"editTime" : { "__type" : "time", "time" : "2026-06-26T23:00:00+02:00" },
+				"string" : "## Nuestro Primer Programa\n\nEl código siguiente abre `dos.library`, obtiene el *handle* de salida estándar y escribe un mensaje. Pulsa **Assemble** para generar el ejecutable AmigaOS, y **Run on FS-UAE** para verlo en acción.",
+				"children" : { "__type" : "snippets", "items" : [] }
+			},
+			{
+				"__type" : "amiga68kSnippet",
+				"uid" : { "__type" : "LepiterUID", "uid" : "u6q3ZCS2pJnbrDtECBw4DD==" },
+				"createTime" : { "__type" : "time", "time" : "2026-06-26T23:00:00+02:00" },
+				"editTime" : { "__type" : "time", "time" : "2026-06-26T23:00:00+02:00" },
+				"code" : "; Hola Amiga - Primer programa en ensamblador 68000\n; Utiliza dos.library para escribir en la consola de AmigaOS\n;\n; Convención: parámetros en registros d0-d7 / a0-a5\n;              base de librería siempre en a6\n\n        SECTION code,CODE\n\nstart:\n        ; --- Abrir dos.library ---\n        ; ExecBase siempre en la dirección $4 de la memoria\n        move.l  4.w,a6              ; a6 = ExecBase\n        lea     dosname(pc),a1      ; a1 = nombre de la librería\n        moveq   #0,d0               ; d0 = versión mínima (0 = cualquiera)\n        jsr     -552(a6)            ; Exec OpenLibrary(a1, d0)\n        move.l  d0,d7               ; guardamos puntero a dos.library en d7\n        beq     exit                ; si falla (NULL), salimos\n\n        ; --- Obtener handle de salida estándar ---\n        move.l  d7,a6               ; a6 = dosbase\n        jsr     -60(a6)             ; DOS Output() -> d0 = filehandle\n        move.l  d0,d1               ; d1 = filehandle de stdout\n\n        ; --- Escribir mensaje ---\n        ; DOS Write(filehandle, buffer, longitud)\n        lea     mensaje(pc),a0\n        move.l  a0,d2               ; d2 = puntero al buffer\n        move.l  #msglen,d3          ; d3 = longitud en bytes\n        jsr     -48(a6)             ; DOS Write(d1, d2, d3)\n\n        ; --- Cerrar dos.library ---\n        move.l  4.w,a6              ; a6 = ExecBase de nuevo\n        move.l  d7,a1               ; a1 = dosbase\n        jsr     -414(a6)            ; Exec CloseLibrary(a1)\n\nexit:\n        moveq   #0,d0               ; retornamos codigo 0 = exito\n        rts\n\n; ---- Datos ----\n        SECTION data,DATA\n\ndosname:\n        dc.b    \"dos.library\",0     ; nombre null-terminado\n        EVEN                        ; alinear a palabra\n\nmensaje:\n        dc.b    \"Hola desde el Amiga 68000!\",10\nmsglen  EQU     *-mensaje           ; longitud calculada en ensamblado\n",
+				"children" : { "__type" : "snippets", "items" : [] }
+			},
+			{
+				"__type" : "textSnippet",
+				"uid" : { "__type" : "LepiterUID", "uid" : "v7r4ADT3qKocsEuFDCx5EE==" },
+				"createTime" : { "__type" : "time", "time" : "2026-06-26T23:00:00+02:00" },
+				"editTime" : { "__type" : "time", "time" : "2026-06-26T23:00:00+02:00" },
+				"string" : "## Anatomía del Programa\n\n### Secciones\nEl 68000 de AmigaOS organiza el código en *secciones*:\n- `SECTION code,CODE` — instrucciones, va a memoria de programa\n- `SECTION data,DATA` — datos inicializados (cadenas, tablas)\n- `SECTION bss,BSS` — datos no inicializados (variables, buffers)\n\n### Instrucciones clave\n| Instrucción | Significado |\n|-------------|------------|\n| `move.l 4.w,a6` | Carga la longword en dirección $0004 en a6 (ExecBase) |\n| `lea dosname(pc),a1` | Carga la dirección PC-relativa de `dosname` en a1 |\n| `moveq #0,d0` | Mueve el inmediato 0 a d0 (instrucción rápida de 1 word) |\n| `jsr -552(a6)` | Salta a la subrutina en a6-552 (OpenLibrary en ExecBase) |\n| `beq exit` | Salta si d0=0 (resultado NULL = error) |\n| `dc.b \"...\",0` | Define bytes: la cadena + terminador null |\n| `EQU *-mensaje` | Define `msglen` como la diferencia de posiciones (longitud) |\n\n### ¿Por qué offsets negativos?\nAmigaOS construye sus *jump tables* hacia atrás desde el puntero base de la librería. `OpenLibrary` está 552 bytes antes de la base de Exec. Este diseño permite añadir funciones nuevas hacia arriba sin romper la compatibilidad binaria.",
+				"children" : { "__type" : "snippets", "items" : [] }
+			}
+		]
+	},
+	"createTime" : { "__type" : "time", "time" : "2026-06-26T23:00:00+02:00" },
+	"editTime" : { "__type" : "time", "time" : "2026-06-26T23:00:00+02:00" },
+	"uid" : { "__type" : "LepiterUID", "uid" : "GT4AmigaHelloWorldPage00==" }
+}

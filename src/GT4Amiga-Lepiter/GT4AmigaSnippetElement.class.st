@@ -3,6 +3,7 @@ Class {
 	#superclass : #BrVerticalPane,
 	#instVars : [
 		'snippet'
+		'snippetViewModel'
 		'codeEditor'
 		'toolbar'
 		'outputPane'
@@ -31,6 +32,19 @@ GT4AmigaSnippetElement >> snippet: aSnippet [
 	self updateOutputPane
 ]
 
+{ #category : #accessing }
+GT4AmigaSnippetElement >> snippetViewModel [
+	^ snippetViewModel
+]
+
+{ #category : #accessing }
+GT4AmigaSnippetElement >> snippetViewModel: aViewModel [
+	"Called by Lepiter when rendering inside a page.
+	 Extracts the underlying snippet from the view model."
+	snippetViewModel := aViewModel.
+	self snippet: aViewModel snippet
+]
+
 { #category : #'building - ui' }
 GT4AmigaSnippetElement >> buildUI [
 	self buildToolbar.
@@ -40,7 +54,7 @@ GT4AmigaSnippetElement >> buildUI [
 
 { #category : #'building - ui' }
 GT4AmigaSnippetElement >> buildToolbar [
-	| assembleButton runButton platformLabel |
+	| assembleButton runButton |
 	toolbar := BrHorizontalPane new
 		matchParent;
 		vFitContent;
@@ -61,7 +75,7 @@ GT4AmigaSnippetElement >> buildToolbar [
 
 	statusLabel := BrLabel new
 		aptitude: BrGlamorousLabelAptitude;
-		text: '';
+		text: '' asRopedText;
 		yourself.
 
 	toolbar
@@ -74,22 +88,24 @@ GT4AmigaSnippetElement >> buildToolbar [
 
 { #category : #'building - ui' }
 GT4AmigaSnippetElement >> buildCodeEditor [
-	codeEditor := BrCodeEditor new
-		matchParent;
-		height: 200;
+	"BrEditor with monospaced aptitude for assembly code."
+	codeEditor := BrEditor new
+		aptitude: BrGlamorousCodeEditorAptitude new;
+		vExact: 220;
+		hMatchParent;
 		padding: (BlInsets all: 8);
 		yourself.
-	codeEditor styler: GT4Amiga68kStyler new.
 	codeEditor
 		when: BrTextEditorModifiedEvent
-		do: [ :evt | snippet ifNotNil: [ snippet code: codeEditor text asString ] ].
+		do: [ :evt |
+			snippet ifNotNil: [ snippet code: codeEditor text asString ] ].
 	self addChild: codeEditor
 ]
 
 { #category : #'building - ui' }
 GT4AmigaSnippetElement >> buildOutputPane [
 	outputPane := BrVerticalPane new
-		matchParent;
+		hMatchParent;
 		vFitContent;
 		yourself.
 	self addChild: outputPane
@@ -115,17 +131,17 @@ GT4AmigaSnippetElement >> onAssembleAndRun [
 	  statusLabel text: 'Running on FS-UAE...' asRopedText.
 	  output := GT4FSUAERunner default run: result.
 	  self showOutput: output.
-	  statusLabel text: 'Done' asRopedText ]
+	  statusLabel text: 'Done.' asRopedText ]
 		on: Error
 		do: [ :e | statusLabel text: ('Error: ' , e messageText) asRopedText ]
 ]
 
 { #category : #'updating - ui' }
 GT4AmigaSnippetElement >> showAssemblyResult: aResult [
-	outputPane removeChildren.
 	aResult success
 		ifTrue: [
-			statusLabel text: ('OK - ' , aResult binarySize printString , ' bytes') asRopedText.
+			statusLabel text:
+				('OK — ' , aResult binarySize printString , ' bytes') asRopedText.
 			self showOutput: '' ]
 		ifFalse: [
 			statusLabel text: 'Assembly failed' asRopedText.
@@ -136,9 +152,9 @@ GT4AmigaSnippetElement >> showAssemblyResult: aResult [
 GT4AmigaSnippetElement >> showOutput: aString [
 	| outputLabel |
 	outputPane removeChildren.
-	aString isNil or: [ aString isEmpty ] ifTrue: [ ^ self ].
+	(aString isNil or: [ aString isEmpty ]) ifTrue: [ ^ self ].
 	outputLabel := BrLabel new
-		aptitude: BrGlamorousMonospacedLabelAptitude;
+		aptitude: BrGlamorousMonospacedLabelAptitude new;
 		text: aString asRopedText;
 		padding: (BlInsets all: 8);
 		yourself.
