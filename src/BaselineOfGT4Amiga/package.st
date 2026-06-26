@@ -1,1 +1,1 @@
-{ #name : #BaselineOfGT4Amiga }
+Package { #name : 'BaselineOfGT4Amiga' }
