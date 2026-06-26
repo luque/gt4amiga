@@ -29,3 +29,11 @@ SqueakDebug.log
 # Metacello-github cache
 /github-cache
 github-*.zip
+
+# GToolkit installation files
+*.zip
+*.sources
+/bin/
+/lib/
+/gt-extra/
+/pharo-local/
