@@ -5,14 +5,6 @@ Class {
 	#package : 'BaselineOfGT4Amiga'
 }
 
-{ #category : 'load hooks' }
-BaselineOfGT4Amiga class >> registerGT4AmigaSnippets [
-	"Called by Metacello after all packages load.
-	 Registers the custom Lepiter snippet type."
-	(Smalltalk globals includesKey: #GT4AmigaSnippetRegistration)
-		ifTrue: [ (Smalltalk globals at: #GT4AmigaSnippetRegistration) register ]
-]
-
 { #category : 'baseline' }
 BaselineOfGT4Amiga >> baseline: spec [
 	<baseline>
@@ -24,4 +16,12 @@ BaselineOfGT4Amiga >> baseline: spec [
 				package: 'GT4Amiga-Lepiter'
 					with: [ spec requires: #('GT4Amiga-Core' 'GT4Amiga-FSUAE') ].
 			spec postLoadDoIt: #registerGT4AmigaSnippets ]
+]
+
+{ #category : 'load hooks' }
+BaselineOfGT4Amiga >> registerGT4AmigaSnippets [
+	"Called by Metacello after all packages load.
+	 Registers the custom Lepiter snippet type."
+	(Smalltalk globals includesKey: #GT4AmigaSnippetRegistration)
+		ifTrue: [ (Smalltalk globals at: #GT4AmigaSnippetRegistration) register ]
 ]
