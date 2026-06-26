@@ -2,11 +2,11 @@ Class {
 	#name : #GT4AmigaAssemblyResult,
 	#superclass : #Object,
 	#instVars : [
-		'success'
-		'outputFile'
-		'stdout'
-		'stderr'
-		'exitCode'
+		'success',
+		'outputFile',
+		'stdout',
+		'stderr',
+		'exitCode',
 		'sourceCode'
 	],
 	#category : #'GT4Amiga-Core'

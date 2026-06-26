@@ -2,8 +2,8 @@ Class {
 	#name : #GT4AmigaSnippet,
 	#superclass : #LeSnippet,
 	#instVars : [
-		'code'
-		'lastResult'
+		'code',
+		'lastResult',
 		'targetPlatform'
 	],
 	#category : #'GT4Amiga-Lepiter'

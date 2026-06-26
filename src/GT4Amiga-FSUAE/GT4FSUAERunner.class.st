@@ -2,10 +2,10 @@ Class {
 	#name : #GT4FSUAERunner,
 	#superclass : #Object,
 	#instVars : [
-		'configuration'
-		'fsuaeProcess'
-		'serialSocket'
-		'outputBuffer'
+		'configuration',
+		'fsuaeProcess',
+		'serialSocket',
+		'outputBuffer',
 		'configFile'
 	],
 	#classVars : [ 'Default' ],

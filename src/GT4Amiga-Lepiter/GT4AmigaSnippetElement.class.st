@@ -2,11 +2,11 @@ Class {
 	#name : #GT4AmigaSnippetElement,
 	#superclass : #BrVerticalPane,
 	#instVars : [
-		'snippet'
-		'snippetViewModel'
-		'codeEditor'
-		'toolbar'
-		'outputPane'
+		'snippet',
+		'snippetViewModel',
+		'codeEditor',
+		'toolbar',
+		'outputPane',
 		'statusLabel'
 	],
 	#category : #'GT4Amiga-Lepiter'

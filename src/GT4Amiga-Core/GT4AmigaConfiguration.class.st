@@ -2,14 +2,14 @@ Class {
 	#name : #GT4AmigaConfiguration,
 	#superclass : #Object,
 	#instVars : [
-		'vasmPath'
-		'fsuaePath'
-		'kickstartPath'
-		'workbenchHdfPath'
-		'sharedDirectory'
-		'serialPort'
-		'amigaModel'
-		'chipMemory'
+		'vasmPath',
+		'fsuaePath',
+		'kickstartPath',
+		'workbenchHdfPath',
+		'sharedDirectory',
+		'serialPort',
+		'amigaModel',
+		'chipMemory',
 		'fastMemory'
 	],
 	#classVars : [ 'Default' ],
