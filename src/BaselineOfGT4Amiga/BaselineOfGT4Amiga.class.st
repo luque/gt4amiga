@@ -5,6 +5,21 @@ Class {
 	#package : 'BaselineOfGT4Amiga'
 }
 
+{ #category : 'lepiter' }
+BaselineOfGT4Amiga class >> loadLepiter [
+	IceRepository registry  
+		detect: [ :aRepository |
+			aRepository name = 'gt4amiga' ]
+		ifFound: [ :aRepository | 
+			| defaultDatabase currentProperties |
+			defaultDatabase := LeDatabasesRegistry defaultLogicalDatabase.
+			currentProperties := defaultDatabase properties.
+			currentProperties addRegisteredDirectory: aRepository repositoryDirectory / 'lepiter'.
+			defaultDatabase reload ]
+		ifNone: [
+			self inform: 'Repository not found.' ]
+]
+
 { #category : 'baseline' }
 BaselineOfGT4Amiga >> baseline: spec [
 	<baseline>
