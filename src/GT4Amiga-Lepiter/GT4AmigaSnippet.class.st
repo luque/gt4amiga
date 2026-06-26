@@ -38,7 +38,7 @@ GT4AmigaSnippet >> code [
 { #category : #accessing }
 GT4AmigaSnippet >> code: aString [
 	code := aString.
-	self notifyChanged
+	self announceContentChanged
 ]
 
 { #category : #accessing }
@@ -63,7 +63,7 @@ GT4AmigaSnippet >> assemble [
 	| assembler |
 	assembler := GT4AmigaAssembler new.
 	lastResult := assembler assemble: code.
-	self notifyChanged.
+	self announceContentChanged.
 	^ lastResult
 ]
 
