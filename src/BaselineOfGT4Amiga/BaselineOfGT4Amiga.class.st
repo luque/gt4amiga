@@ -23,8 +23,5 @@ BaselineOfGT4Amiga >> baseline: spec [
 				package: 'GT4Amiga-FSUAE' with: [ spec requires: #('GT4Amiga-Core') ];
 				package: 'GT4Amiga-Lepiter'
 					with: [ spec requires: #('GT4Amiga-Core' 'GT4Amiga-FSUAE') ].
-			spec
-				group: 'Core'
-				with: #('GT4Amiga-Core' 'GT4Amiga-FSUAE' 'GT4Amiga-Lepiter').
 			spec postLoadDoIt: #registerGT4AmigaSnippets ]
 ]
