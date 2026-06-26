@@ -1,0 +1,23 @@
+; GT4Amiga program watcher
+; Polls GT4A:incoming/trigger for a new program to run.
+; Runs the program, captures output to serial port.
+; Place this in GT4A:s/gt4amiga-watcher on the shared drive.
+;
+; Output from the program is captured via SER: (serial device).
+; Programs that produce text output should use DOS Write/Print calls.
+; A chr(0) at the end signals completion to the host.
+
+:mainloop
+  IF EXISTS GT4A:incoming/trigger
+    ; Remove trigger first to avoid re-run
+    Delete GT4A:incoming/trigger QUIET
+
+    ; Execute the program, redirect stdout to serial port
+    Echo "GT4A:RUN>" >SER:
+    Execute GT4A:incoming/program >SER:
+    Echo "" >SER:
+    ; Send null terminator to signal completion to the host
+    Echo "*N" >SER:
+  ENDIF
+  Wait 1
+  Skip mainloop

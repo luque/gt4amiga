@@ -1,0 +1,9 @@
+; GT4Amiga user-startup script
+; Add this to s/user-startup on the Workbench disk (DH0:).
+; It mounts the GT4A: shared drive and starts the program watcher.
+
+; Mount the shared directory (FS-UAE maps it as hard drive 1)
+Assign GT4A: DH1:
+
+; Start the watcher in background (detached)
+Run >NIL: GT4A:s/gt4amiga-watcher
