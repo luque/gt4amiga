@@ -49,13 +49,14 @@ GT4AmigaAssembler >> assemble: sourceString format: aSymbol [
 	workDir ensureCreateDirectory.
 	sourceFile := workDir / 'source.s'.
 	outputFile := workDir / 'program'.
+	sourceFile exists ifTrue: [ sourceFile delete ].
 	outputFile exists ifTrue: [ outputFile delete ].
 
 	sourceFile writeStreamDo: [ :s | s nextPutAll: sourceString ].
 
 	formatFlag := aSymbol = #bin ifTrue: [ '-Fbin' ] ifFalse: [ '-Fhunk' ].
 
-	proc := OSSUnixSubprocess new
+	proc := GtSubprocessWithInMemoryOutput new
 		command: configuration vasmPath;
 		arguments: {
 			'-m68000'.
@@ -63,17 +64,13 @@ GT4AmigaAssembler >> assemble: sourceString format: aSymbol [
 			'-spaces'.
 			'-o'. outputFile fullName.
 			sourceFile fullName };
-		redirectStdout;
-		redirectStderr;
-		run.
-	proc waitForExit.
+		runAndWait.
 
 	result := GT4AmigaAssemblyResult new.
 	result exitCode: proc exitCode.
-	result stdout: proc stdoutStream upToEnd.
-	result stderr: proc stderrStream upToEnd.
+	result stdout: proc stdout.
+	result stderr: proc stderr.
 	result sourceCode: sourceString.
-	proc closeAndCleanUp.
 
 	result success: (proc exitCode = 0 and: [ outputFile exists ]).
 	result success ifTrue: [ result outputFile: outputFile ].

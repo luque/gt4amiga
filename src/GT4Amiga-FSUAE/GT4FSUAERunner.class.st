@@ -52,7 +52,7 @@ GT4FSUAERunner >> launch [
 	self isRunning ifTrue: [ ^ self ].
 	self prepareSharedDirectory.
 	configFile := self writeFSUAEConfig.
-	fsuaeProcess := OSSUnixSubprocess new
+	fsuaeProcess := GtSubprocessWithInMemoryOutput new
 		command: configuration fsuaePath;
 		arguments: { '--config=' , configFile fullName };
 		run.
@@ -66,7 +66,7 @@ GT4FSUAERunner >> stop [
 	self disconnectSerial.
 	(fsuaeProcess isNil or: [ fsuaeProcess isRunning not ]) ifTrue: [ ^ self ].
 	fsuaeProcess terminate.
-	fsuaeProcess waitForExit.
+	fsuaeProcess wait.
 	fsuaeProcess := nil
 ]
 

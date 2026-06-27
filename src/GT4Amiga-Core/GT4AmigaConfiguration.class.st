@@ -28,13 +28,23 @@ GT4AmigaConfiguration class >> default: aConfiguration [
 
 { #category : #initialization }
 GT4AmigaConfiguration >> initialize [
-	vasmPath := '/usr/local/bin/vasmm68k_mot'.
+	vasmPath := self detectVasmPath.
 	fsuaePath := '/usr/bin/fs-uae'.
 	sharedDirectory := (FileLocator home / 'work' / 'gt4amiga' / 'shared') asFileReference.
 	serialPort := 2345.
 	amigaModel := 'A500'.
 	chipMemory := 512.
 	fastMemory := 0
+]
+
+{ #category : #initialization }
+GT4AmigaConfiguration >> detectVasmPath [
+	"Try known locations for vasmm68k_mot; fall back to bare name (PATH lookup)."
+	#('/home/osoco/local/vasm/vasmm68k_mot'
+	  '/usr/local/bin/vasmm68k_mot'
+	  '/usr/bin/vasmm68k_mot') do: [ :p |
+		p asFileReference exists ifTrue: [ ^ p ] ].
+	^ 'vasmm68k_mot'
 ]
 
 { #category : #accessing }
