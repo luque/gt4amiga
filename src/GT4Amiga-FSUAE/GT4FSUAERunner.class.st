@@ -185,6 +185,7 @@ GT4FSUAERunner >> writeFSUAEConfig [
 	configRef ensureCreateDirectory.
 	configRef := configRef / 'gt4amiga.fs-uae'.
 	content := self fsuaeConfigContent.
+	configRef exists ifTrue: [ configRef delete ].
 	configRef writeStreamDo: [ :s | s nextPutAll: content ].
 	^ configRef
 ]
