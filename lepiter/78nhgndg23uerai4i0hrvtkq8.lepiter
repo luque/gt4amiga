@@ -1,0 +1,326 @@
+{
+	"__schema" : "4.1",
+	"__type" : "page",
+	"children" : {
+		"__type" : "snippets",
+		"items" : [
+			{
+				"__type" : "textSnippet",
+				"children" : {
+					"__type" : "snippets",
+					"items" : [ ]
+				},
+				"createEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"createTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-06-27T20:34:21.418289+02:00"
+					}
+				},
+				"editEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"editTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-06-27T20:34:21.418289+02:00"
+					}
+				},
+				"uid" : {
+					"__type" : "uid",
+					"uidString" : "0iml4NF5QvW1nVU8MedJag=="
+				},
+				"paragraphStyle" : {
+					"__type" : "textStyle"
+				},
+				"string" : "GT4Amiga incluye un ensamblador 68000 basado en **vasm** (sintaxis Motorola). Cada snippet `amiga68k` tiene botones **Assemble** y **Run on FS-UAE**. Al pulsar *Assemble* se compila el código y se muestra si hay errores; al pulsar *Run on FS-UAE* se envía el ejecutable al emulador y se captura la salida por el puerto serie."
+			},
+			{
+				"__type" : "textSnippet",
+				"children" : {
+					"__type" : "snippets",
+					"items" : [ ]
+				},
+				"createEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"createTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-06-27T20:34:30.493868+02:00"
+					}
+				},
+				"editEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"editTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-06-27T20:34:30.493868+02:00"
+					}
+				},
+				"uid" : {
+					"__type" : "uid",
+					"uidString" : "bJs7ghMNQTuOLqdAQMl0zA=="
+				},
+				"paragraphStyle" : {
+					"__type" : "textStyle"
+				},
+				"string" : "## Ejemplo 1 — Programa mínimo\n\nEl programa más pequeño posible: no hace nada y retorna al sistema operativo con código de salida 0. En AmigaOS los programas retornan un código en `d0` (0 = éxito)."
+			},
+			{
+				"__type" : "amiga68kSnippet",
+				"children" : {
+					"__type" : "snippets",
+					"items" : [ ]
+				},
+				"createEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"createTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-06-27T20:34:35.111761+02:00"
+					}
+				},
+				"editEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"editTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-06-27T20:34:35.111761+02:00"
+					}
+				},
+				"uid" : {
+					"__type" : "uid",
+					"uidString" : "3EnC7o2uQgK/ME3pkDNozg=="
+				},
+				"code" : "        SECTION code,CODE\n\nstart:\n        moveq   #0,d0       ; código de salida 0 = éxito\n        rts                 ; retornar al sistema operativo\n\n        END start"
+			},
+			{
+				"__type" : "textSnippet",
+				"children" : {
+					"__type" : "snippets",
+					"items" : [ ]
+				},
+				"createEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"createTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-06-27T20:34:42.275554+02:00"
+					}
+				},
+				"editEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"editTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-06-27T20:34:42.275554+02:00"
+					}
+				},
+				"uid" : {
+					"__type" : "uid",
+					"uidString" : "3XIQCXaXSguuLG/Xjkl9XQ=="
+				},
+				"paragraphStyle" : {
+					"__type" : "textStyle"
+				},
+				"string" : "Pulsa **Assemble** — deberías ver `OK — N bytes`. Si hay un error de sintaxis, el mensaje de vasm aparecerá en el área de salida.\n\n## Ejemplo 2 — Aritmética básica\n\nEl 68000 tiene ocho registros de datos (`d0`–`d7`) y ocho de dirección (`a0`–`a7`). `MOVE`, `ADD` y `SUB` son las instrucciones más comunes. El sufijo `.l`, `.w` o `.b` indica tamaño: *longword* (32 bit), *word* (16 bit) o *byte* (8 bit)."
+			},
+			{
+				"__type" : "amiga68kSnippet",
+				"children" : {
+					"__type" : "snippets",
+					"items" : [ ]
+				},
+				"createEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"createTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-06-27T20:34:46.51761+02:00"
+					}
+				},
+				"editEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"editTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-06-27T20:34:46.51761+02:00"
+					}
+				},
+				"uid" : {
+					"__type" : "uid",
+					"uidString" : "MY9KHY9FRcqqADOre948JA=="
+				},
+				"code" : "        SECTION code,CODE\n\nstart:\n        moveq   #10,d0      ; d0 = 10\n        moveq   #32,d1      ; d1 = 32\n        add.l   d1,d0       ; d0 = d0 + d1 = 42\n        sub.l   #2,d0       ; d0 = d0 - 2 = 40\n        rts                 ; retorna con d0 = 40\n\n        END start"
+			},
+			{
+				"__type" : "textSnippet",
+				"children" : {
+					"__type" : "snippets",
+					"items" : [ ]
+				},
+				"createEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"createTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-06-27T20:34:51.637202+02:00"
+					}
+				},
+				"editEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"editTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-06-27T20:34:51.637202+02:00"
+					}
+				},
+				"uid" : {
+					"__type" : "uid",
+					"uidString" : "rR0AObiRT860Wd2XZmRi2Q=="
+				},
+				"paragraphStyle" : {
+					"__type" : "textStyle"
+				},
+				"string" : "## Ejemplo 3 — Acceso a memoria y datos\n\nLa sección `DATA` define los datos del programa. La instrucción `LEA` (*Load Effective Address*) carga la dirección de una etiqueta en un registro de dirección. Con `MOVE.B (a0),d0` se lee el byte en esa dirección."
+			},
+			{
+				"__type" : "amiga68kSnippet",
+				"children" : {
+					"__type" : "snippets",
+					"items" : [ ]
+				},
+				"createEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"createTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-06-27T20:34:57.27008+02:00"
+					}
+				},
+				"editEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"editTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-06-27T20:34:57.27008+02:00"
+					}
+				},
+				"uid" : {
+					"__type" : "uid",
+					"uidString" : "RbERQRMDTcC1eLXjXPvF6w=="
+				},
+				"code" : "        SECTION code,CODE\n\nstart:\n        lea     valor(pc),a0    ; a0 = dirección de 'valor' (pc-relative)\n        move.b  (a0),d0         ; d0 = byte en esa dirección = 7\n        add.b   #3,d0           ; d0 = 7 + 3 = 10\n        ext.w   d0              ; extender byte a word\n        ext.l   d0              ; extender word a longword\n        rts                     ; retorna con d0 = 10\n\n        SECTION data,DATA\n\nvalor:\n        dc.b    7               ; define un byte con valor 7\n\n        END start"
+			},
+			{
+				"__type" : "textSnippet",
+				"children" : {
+					"__type" : "snippets",
+					"items" : [ ]
+				},
+				"createEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"createTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-06-27T20:35:04.566896+02:00"
+					}
+				},
+				"editEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"editTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-06-27T20:35:04.566896+02:00"
+					}
+				},
+				"uid" : {
+					"__type" : "uid",
+					"uidString" : "TLqtp0fpS5CqHXINdkKGyQ=="
+				},
+				"paragraphStyle" : {
+					"__type" : "textStyle"
+				},
+				"string" : "Con estos tres patrones — programa mínimo, operaciones de registro y acceso a datos — ya tienes las bases para leer código 68000 real. El siguiente paso es usar las librerías de AmigaOS para interactuar con el sistema: abrir `dos.library`, obtener el handle de salida estándar y escribir en él. Eso es exactamente lo que hace el ejemplo [[Hola Amiga — Primer Programa 68000]]."
+			}
+		]
+	},
+	"createEmail" : {
+		"__type" : "email",
+		"emailString" : "<unknown>"
+	},
+	"createTime" : {
+		"__type" : "time",
+		"time" : {
+			"__type" : "dateAndTime",
+			"dateAndTimeString" : "2026-06-27T20:34:15.423238+02:00"
+		}
+	},
+	"editEmail" : {
+		"__type" : "email",
+		"emailString" : "<unknown>"
+	},
+	"editTime" : {
+		"__type" : "time",
+		"time" : {
+			"__type" : "dateAndTime",
+			"dateAndTimeString" : "2026-06-27T20:34:15.423238+02:00"
+		}
+	},
+	"pageType" : {
+		"__type" : "namedPage",
+		"title" : "El Ensamblador — Primeros Pasos"
+	},
+	"uid" : {
+		"__type" : "uuid",
+		"uuid" : "30e9f0cd-0ffc-4a69-9462-ad252e504c7a"
+	}
+}
