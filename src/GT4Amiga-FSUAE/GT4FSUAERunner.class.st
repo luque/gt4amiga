@@ -188,22 +188,24 @@ GT4FSUAERunner >> writeFSUAEConfig [
 GT4FSUAERunner >> fsuaeConfigContent [
 	"Generate the FS-UAE config file content."
 	^ String streamContents: [ :s |
-		s nextPutAll: '[config]'; nl.
-		s nextPutAll: 'amiga_model = ' , configuration amigaModel; nl.
-		s nextPutAll: 'chip_memory = ' , configuration chipMemory printString; nl.
+		| lf |
+		lf := String lf.
+		s nextPutAll: '[config]'; nextPutAll: lf.
+		s nextPutAll: 'amiga_model = ' , configuration amigaModel; nextPutAll: lf.
+		s nextPutAll: 'chip_memory = ' , configuration chipMemory printString; nextPutAll: lf.
 		configuration fastMemory > 0 ifTrue: [
-			s nextPutAll: 'fast_memory = ' , configuration fastMemory printString; nl ].
+			s nextPutAll: 'fast_memory = ' , configuration fastMemory printString; nextPutAll: lf ].
 		configuration kickstartPath isNil not ifTrue: [
-			s nextPutAll: 'kickstart_file = ' , configuration kickstartPath fullName; nl ].
+			s nextPutAll: 'kickstart_file = ' , configuration kickstartPath fullName; nextPutAll: lf ].
 		configuration workbenchHdfPath isNil not ifTrue: [
-			s nextPutAll: 'hard_drive_0 = ' , configuration workbenchHdfPath fullName; nl.
-			s nextPutAll: 'hard_drive_0_label = DH0'; nl ].
-		s nextPutAll: 'hard_drive_1 = ' , configuration sharedDirectory fullName; nl.
-		s nextPutAll: 'hard_drive_1_label = GT4A'; nl.
-		s nextPutAll: 'serial_port = tcp://localhost:' , configuration serialPort printString; nl.
-		s nextPutAll: 'fullscreen = 0'; nl.
-		s nextPutAll: 'window_width = 720'; nl.
-		s nextPutAll: 'window_height = 568'; nl ]
+			s nextPutAll: 'hard_drive_0 = ' , configuration workbenchHdfPath fullName; nextPutAll: lf.
+			s nextPutAll: 'hard_drive_0_label = DH0'; nextPutAll: lf ].
+		s nextPutAll: 'hard_drive_1 = ' , configuration sharedDirectory fullName; nextPutAll: lf.
+		s nextPutAll: 'hard_drive_1_label = GT4A'; nextPutAll: lf.
+		s nextPutAll: 'serial_port = tcp://localhost:' , configuration serialPort printString; nextPutAll: lf.
+		s nextPutAll: 'fullscreen = 0'; nextPutAll: lf.
+		s nextPutAll: 'window_width = 720'; nextPutAll: lf.
+		s nextPutAll: 'window_height = 568'; nextPutAll: lf ]
 ]
 
 { #category : #'gt-extensions' }
