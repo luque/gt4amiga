@@ -98,7 +98,10 @@ GT4AmigaSnippetElement >> buildCodeEditor [
 	codeEditor
 		when: BrTextEditorModifiedEvent
 		do: [ :evt |
-			snippet ifNotNil: [ snippet code: codeEditor text asString ] ].
+			snippet ifNotNil: [:s |
+				| newCode |
+				newCode := codeEditor text asString.
+				newCode = s code ifFalse: [ s code: newCode ] ] ].
 	self addChild: codeEditor
 ]
 
