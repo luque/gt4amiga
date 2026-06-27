@@ -13,20 +13,19 @@ Class {
 { #category : #initialization }
 GT4AmigaSnippetElement >> initialize [
 	super initialize.
-	self buildToolbar.
-	self buildOutputPane
+	self buildContentArea
 ]
 
 { #category : #'api - snippet' }
 GT4AmigaSnippetElement >> snippetContent [
 	<return: #BlElement>
-	^ outputPane
+	^ toolbar
 ]
 
 { #category : #'api - snippet' }
 GT4AmigaSnippetElement >> snippetToolbar [
 	<return: #BlElement or: nil>
-	^ toolbar
+	^ nil
 ]
 
 { #category : #'api - snippet' }
@@ -37,14 +36,13 @@ GT4AmigaSnippetElement >> onSnippetViewModelChanged [
 ]
 
 { #category : #'building - ui' }
-GT4AmigaSnippetElement >> buildToolbar [
-	| assembleButton runButton buttonBar |
+GT4AmigaSnippetElement >> buildContentArea [
+	| buttonBar assembleButton runButton |
 
 	codeEditor := BrEditor new
 		aptitude: BrGlamorousCodeEditorAptitude new;
-		vExact: 220;
-		hMatchParent;
-		padding: (BlInsets all: 8);
+		constraintsDo: [ :c | c horizontal matchParent. c vertical exact: 200 ];
+		padding: (BlInsets all: 6);
 		yourself.
 	codeEditor
 		when: BrTextEditorModifiedEvent
@@ -67,26 +65,23 @@ GT4AmigaSnippetElement >> buildToolbar [
 		action: [ self onAssembleAndRun ];
 		yourself.
 
-	buttonBar := BrHorizontalPane new
-		hMatchParent;
-		vFitContent;
+	buttonBar := BlElement new
+		layout: BlLinearLayout horizontal;
+		constraintsDo: [ :c | c horizontal matchParent. c vertical fitContent ];
 		padding: (BlInsets top: 2 bottom: 4);
 		addChildren: { assembleButton. runButton. statusLabel };
 		yourself.
 
-	toolbar := BrVerticalPane new
-		hMatchParent;
-		vFitContent;
-		addChildren: { codeEditor. buttonBar };
+	outputPane := BlElement new
+		layout: BlLinearLayout vertical;
+		constraintsDo: [ :c | c horizontal matchParent. c vertical fitContent ];
 		yourself.
-]
 
-{ #category : #'building - ui' }
-GT4AmigaSnippetElement >> buildOutputPane [
-	outputPane := BrVerticalPane new
-		hMatchParent;
-		vFitContent;
-		yourself.
+	toolbar := BlElement new
+		layout: BlLinearLayout vertical;
+		constraintsDo: [ :c | c horizontal matchParent. c vertical fitContent ];
+		addChildren: { codeEditor. buttonBar. outputPane };
+		yourself
 ]
 
 { #category : #private }
