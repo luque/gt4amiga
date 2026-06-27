@@ -9,6 +9,18 @@ Class {
 	#category : #'GT4Amiga-Lepiter'
 }
 
+{ #category : #serialization }
+GT4AmigaSnippet class >> leJsonV4Name [
+	^ 'amiga68kSnippet'
+]
+
+{ #category : #serialization }
+GT4AmigaSnippet class >> leJsonV4AttributeMapping [
+	^ super leJsonV4AttributeMapping
+		add: (#code -> #code);
+		yourself
+]
+
 { #category : #'instance creation' }
 GT4AmigaSnippet class >> empty [
 	^ self new
