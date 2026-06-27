@@ -107,6 +107,12 @@ GT4AmigaSnippet >> isEmpty [
 ]
 
 { #category : #lepiter }
+GT4AmigaSnippet >> asSnippetViewModel [
+	<return: #LeSnippetViewModel>
+	^ GT4AmigaSnippetViewModel new snippetModel: self
+]
+
+{ #category : #lepiter }
 GT4AmigaSnippet >> viewModelClass [
 	^ GT4AmigaSnippetViewModel
 ]
