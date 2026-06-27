@@ -1,0 +1,3 @@
+# Ignore HDF disk images (large/private)
+*.hdf
+*.HDF

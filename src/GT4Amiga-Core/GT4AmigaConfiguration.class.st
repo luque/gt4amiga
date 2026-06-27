@@ -28,13 +28,55 @@ GT4AmigaConfiguration class >> default: aConfiguration [
 
 { #category : #initialization }
 GT4AmigaConfiguration >> initialize [
+	| projectDir |
 	vasmPath := self detectVasmPath.
 	fsuaePath := '/usr/bin/fs-uae'.
-	sharedDirectory := (FileLocator home / 'work' / 'gt4amiga' / 'shared') asFileReference.
+	projectDir := self detectProjectDirectory.
+	sharedDirectory := (projectDir / 'shared') asFileReference.
+	kickstartPath := self detectKickstartIn: (projectDir / 'rom').
+	workbenchHdfPath := self detectWorkbenchHdfIn: (projectDir / 'hdf').
 	serialPort := 2345.
 	amigaModel := 'A500'.
 	chipMemory := 512.
 	fastMemory := 0
+]
+
+{ #category : #initialization }
+GT4AmigaConfiguration >> detectProjectDirectory [
+	"Locate the gt4amiga project root. The Iceberg clone may live inside
+	 pharo-local/iceberg/... so we walk up until we find a directory that
+	 contains both src/ and lepiter/ (the true project root)."
+	IceRepository registry
+		detect: [ :r | r name = 'gt4amiga' ]
+		ifFound: [ :r |
+			| dir |
+			dir := r repositoryDirectory.
+			[ dir isRoot ] whileFalse: [
+				((dir / 'src') exists and: [ (dir / 'lepiter') exists ])
+					ifTrue: [ ^ dir ].
+				dir := dir parent ].
+			^ r repositoryDirectory ].
+	^ FileLocator home / 'work' / 'gt4amiga'
+]
+
+{ #category : #initialization }
+GT4AmigaConfiguration >> detectKickstartIn: aDirectory [
+	"Return the first .rom file found in aDirectory, or nil."
+	(aDirectory asFileReference exists) ifFalse: [ ^ nil ].
+	aDirectory asFileReference children
+		detect: [ :f | f extension asLowercase = 'rom' ]
+		ifFound: [ :f | ^ f ]
+		ifNone: [ ^ nil ]
+]
+
+{ #category : #initialization }
+GT4AmigaConfiguration >> detectWorkbenchHdfIn: aDirectory [
+	"Return the first .hdf file found in aDirectory, or nil."
+	(aDirectory asFileReference exists) ifFalse: [ ^ nil ].
+	aDirectory asFileReference children
+		detect: [ :f | f extension asLowercase = 'hdf' ]
+		ifFound: [ :f | ^ f ]
+		ifNone: [ ^ nil ]
 ]
 
 { #category : #initialization }

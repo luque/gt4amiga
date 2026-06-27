@@ -1,0 +1,4 @@
+# Ignore ROM files (private/licensed)
+*.rom
+*.ROM
+*.bin
