@@ -17,6 +17,11 @@ GT4FSUAERunner class >> default [
 	^ Default ifNil: [ Default := self new ]
 ]
 
+{ #category : #accessing }
+GT4FSUAERunner class >> default: aRunner [
+	Default := aRunner
+]
+
 { #category : #'instance creation' }
 GT4FSUAERunner class >> new [
 	^ super new initialize
@@ -190,7 +195,7 @@ GT4FSUAERunner >> fsuaeConfigContent [
 	^ String streamContents: [ :s |
 		| lf |
 		lf := String lf.
-		s nextPutAll: '[config]'; nextPutAll: lf.
+		s nextPutAll: '[fsuae]'; nextPutAll: lf.
 		s nextPutAll: 'amiga_model = ' , configuration amigaModel; nextPutAll: lf.
 		s nextPutAll: 'chip_memory = ' , configuration chipMemory printString; nextPutAll: lf.
 		configuration fastMemory > 0 ifTrue: [
