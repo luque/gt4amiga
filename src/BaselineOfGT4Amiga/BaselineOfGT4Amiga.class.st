@@ -7,14 +7,21 @@ Class {
 
 { #category : 'lepiter' }
 BaselineOfGT4Amiga class >> loadLepiter [
-	IceRepository registry  
+	IceRepository registry
 		detect: [ :aRepository |
 			aRepository name = 'gt4amiga' ]
-		ifFound: [ :aRepository | 
-			| defaultDatabase currentProperties |
+		ifFound: [ :aRepository |
+			| defaultDatabase props lepiterDir |
+			lepiterDir := aRepository repositoryDirectory / 'lepiter'.
 			defaultDatabase := LeDatabasesRegistry defaultLogicalDatabase.
-			currentProperties := defaultDatabase properties.
-			currentProperties addRegisteredDirectory: aRepository repositoryDirectory / 'lepiter'.
+			props := defaultDatabase properties.
+			"Reset LeJsonV4 so the rebuilt reader includes GT4AmigaSnippet.
+			 Then evict any stale GT4Amiga database from memory and reload fresh."
+			LeJsonV4 cleanUniqueInstance.
+			props registeredDatabaseDirectories:
+				(props registeredDatabaseDirectories reject: [ :d | d = lepiterDir ]).
+			defaultDatabase reload.
+			props addRegisteredDirectory: lepiterDir.
 			defaultDatabase reload ]
 		ifNone: [
 			self inform: 'Repository not found.' ]

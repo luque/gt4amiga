@@ -1,9 +1,7 @@
 Class {
 	#name : #GT4AmigaSnippetElement,
-	#superclass : #BrVerticalPane,
+	#superclass : #LeSnippetElement,
 	#instVars : [
-		'snippet',
-		'snippetViewModel',
 		'codeEditor',
 		'toolbar',
 		'outputPane',
@@ -15,50 +13,46 @@ Class {
 { #category : #initialization }
 GT4AmigaSnippetElement >> initialize [
 	super initialize.
-	self matchParent.
-	self padding: (BlInsets all: 4).
-	self buildUI
-]
-
-{ #category : #accessing }
-GT4AmigaSnippetElement >> snippet [
-	^ snippet
-]
-
-{ #category : #accessing }
-GT4AmigaSnippetElement >> snippet: aSnippet [
-	snippet := aSnippet.
-	codeEditor text: aSnippet code asRopedText.
-	self updateOutputPane
-]
-
-{ #category : #accessing }
-GT4AmigaSnippetElement >> snippetViewModel [
-	^ snippetViewModel
-]
-
-{ #category : #accessing }
-GT4AmigaSnippetElement >> snippetViewModel: aViewModel [
-	"Called by Lepiter when rendering inside a page.
-	 Extracts the underlying snippet from the view model."
-	snippetViewModel := aViewModel.
-	self snippet: aViewModel snippet
-]
-
-{ #category : #'building - ui' }
-GT4AmigaSnippetElement >> buildUI [
 	self buildToolbar.
-	self buildCodeEditor.
 	self buildOutputPane
+]
+
+{ #category : #'api - snippet' }
+GT4AmigaSnippetElement >> snippetContent [
+	<return: #BlElement>
+	^ outputPane
+]
+
+{ #category : #'api - snippet' }
+GT4AmigaSnippetElement >> snippetToolbar [
+	<return: #BlElement or: nil>
+	^ toolbar
+]
+
+{ #category : #'api - snippet' }
+GT4AmigaSnippetElement >> onSnippetViewModelChanged [
+	super onSnippetViewModelChanged.
+	codeEditor text: self snippetViewModel snippetModel code asRopedText.
+	self updateOutputPane
 ]
 
 { #category : #'building - ui' }
 GT4AmigaSnippetElement >> buildToolbar [
-	| assembleButton runButton |
-	toolbar := BrHorizontalPane new
-		matchParent;
-		vFitContent;
-		padding: (BlInsets top: 2 bottom: 4);
+	| assembleButton runButton buttonBar |
+
+	codeEditor := BrEditor new
+		aptitude: BrGlamorousCodeEditorAptitude new;
+		vExact: 220;
+		hMatchParent;
+		padding: (BlInsets all: 8);
+		yourself.
+	codeEditor
+		when: BrTextEditorModifiedEvent
+		do: [ :evt | self onEditorTextChanged ].
+
+	statusLabel := BrLabel new
+		aptitude: BrGlamorousLabelAptitude;
+		text: '' asRopedText;
 		yourself.
 
 	assembleButton := BrButton new
@@ -73,36 +67,18 @@ GT4AmigaSnippetElement >> buildToolbar [
 		action: [ self onAssembleAndRun ];
 		yourself.
 
-	statusLabel := BrLabel new
-		aptitude: BrGlamorousLabelAptitude;
-		text: '' asRopedText;
-		yourself.
-
-	toolbar
-		addChild: assembleButton;
-		addChild: runButton;
-		addChild: statusLabel.
-
-	self addChild: toolbar
-]
-
-{ #category : #'building - ui' }
-GT4AmigaSnippetElement >> buildCodeEditor [
-	"BrEditor with monospaced aptitude for assembly code."
-	codeEditor := BrEditor new
-		aptitude: BrGlamorousCodeEditorAptitude new;
-		vExact: 220;
+	buttonBar := BrHorizontalPane new
 		hMatchParent;
-		padding: (BlInsets all: 8);
+		vFitContent;
+		padding: (BlInsets top: 2 bottom: 4);
+		addChildren: { assembleButton. runButton. statusLabel };
 		yourself.
-	codeEditor
-		when: BrTextEditorModifiedEvent
-		do: [ :evt |
-			snippet ifNotNil: [:s |
-				| newCode |
-				newCode := codeEditor text asString.
-				newCode = s code ifFalse: [ s code: newCode ] ] ].
-	self addChild: codeEditor
+
+	toolbar := BrVerticalPane new
+		hMatchParent;
+		vFitContent;
+		addChildren: { codeEditor. buttonBar };
+		yourself.
 ]
 
 { #category : #'building - ui' }
@@ -111,14 +87,22 @@ GT4AmigaSnippetElement >> buildOutputPane [
 		hMatchParent;
 		vFitContent;
 		yourself.
-	self addChild: outputPane
+]
+
+{ #category : #private }
+GT4AmigaSnippetElement >> onEditorTextChanged [
+	| newCode s |
+	self hasSnippetViewModel ifFalse: [ ^ self ].
+	s := self snippetViewModel snippetModel.
+	newCode := codeEditor text asString.
+	newCode = s code ifFalse: [ s code: newCode ]
 ]
 
 { #category : #actions }
 GT4AmigaSnippetElement >> onAssemble [
 	| result |
 	statusLabel text: 'Assembling...' asRopedText.
-	[ result := snippet assemble.
+	[ result := self snippetViewModel snippetModel assemble.
 	  self showAssemblyResult: result ]
 		on: Error
 		do: [ :e | statusLabel text: ('Error: ' , e messageText) asRopedText ]
@@ -128,7 +112,7 @@ GT4AmigaSnippetElement >> onAssemble [
 GT4AmigaSnippetElement >> onAssembleAndRun [
 	| result output |
 	statusLabel text: 'Assembling & running...' asRopedText.
-	[ result := snippet assemble.
+	[ result := self snippetViewModel snippetModel assemble.
 	  result success ifFalse: [
 		  self showAssemblyResult: result. ^ self ].
 	  statusLabel text: 'Running on FS-UAE...' asRopedText.
@@ -166,6 +150,7 @@ GT4AmigaSnippetElement >> showOutput: aString [
 
 { #category : #'updating - ui' }
 GT4AmigaSnippetElement >> updateOutputPane [
-	snippet ifNil: [ ^ self ].
-	snippet lastResult ifNotNil: [ :r | self showAssemblyResult: r ]
+	self hasSnippetViewModel ifFalse: [ ^ self ].
+	self snippetViewModel snippetModel lastResult
+		ifNotNil: [ :r | self showAssemblyResult: r ]
 ]

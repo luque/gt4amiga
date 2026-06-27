@@ -112,18 +112,6 @@ GT4AmigaSnippet >> asSnippetViewModel [
 	^ GT4AmigaSnippetViewModel new snippetModel: self
 ]
 
-{ #category : #lepiter }
-GT4AmigaSnippet >> viewModelClass [
-	^ GT4AmigaSnippetViewModel
-]
-
-{ #category : #lepiter }
-GT4AmigaSnippet >> asElement [
-	"Direct element creation for use in GToolkit inspector/playground."
-	^ GT4AmigaSnippetElement new
-		snippet: self;
-		yourself
-]
 
 { #category : #serialization }
 GT4AmigaSnippet >> jsonDictionary [
