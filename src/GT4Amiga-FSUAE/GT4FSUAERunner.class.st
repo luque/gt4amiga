@@ -196,7 +196,6 @@ GT4FSUAERunner >> fsuaeConfigContent [
 	^ String streamContents: [ :s |
 		| lf |
 		lf := String lf.
-		s nextPutAll: '[fsuae]'; nextPutAll: lf.
 		s nextPutAll: 'amiga_model = ' , configuration amigaModel; nextPutAll: lf.
 		s nextPutAll: 'chip_memory = ' , configuration chipMemory printString; nextPutAll: lf.
 		configuration fastMemory > 0 ifTrue: [
