@@ -63,18 +63,20 @@ hdf/
 
 `GT4AmigaConfiguration` auto-detects the first `.rom` file in `rom/` and the first `.hdf` file in `hdf/`. No manual path configuration needed.
 
-### 2. FS-UAE system config
+### 2. FS-UAE config — important note
 
-FS-UAE determines the Kickstarts directory during early initialisation, before reading the per-session config file. You must tell it where to find your ROMs by adding one line to its user config:
+GT4Amiga writes the complete FS-UAE configuration to `~/.config/fs-uae/fs-uae.conf` every time you press **Run on FS-UAE**. This is the only path that works reliably.
 
-```
-# ~/.config/fs-uae/fs-uae.conf
-kickstarts_dir = /home/<you>/work/gt4amiga/rom
-```
+**Why not a session config file?** FS-UAE has two initialisation phases:
 
-Replace the path with the absolute path to the `rom/` directory in your checkout. This only needs to be done once. Without it, FS-UAE falls back to the built-in AROS ROM regardless of what the session config specifies.
+1. **Early init** — reads `~/.config/fs-uae/fs-uae.conf` and processes all hardware options: `kickstarts_dir`, `hard_drive_*`, memory, model.
+2. **Late init** — reads the file passed via `--config=`. By this point hardware setup is already done; most options (hard drives, kickstarts dir) are silently ignored.
 
-> **Cloanto/Amiga Forever ROMs**: These are encrypted (`AMIROMTYPE1` header, 262155 bytes). Place `rom.key` (from your Amiga Forever installation) alongside the `.rom` file. FS-UAE decrypts them automatically when `kickstarts_dir` is set correctly.
+Passing our config with `--config=` therefore causes hard drives and the Kickstart directory to be ignored, and FS-UAE falls back to the built-in AROS ROM with no disks. Writing directly to `~/.config/fs-uae/fs-uae.conf` ensures every setting takes effect.
+
+> **Side effect**: GT4Amiga replaces this file on every run. If you use FS-UAE for other projects, back up your existing `~/.config/fs-uae/fs-uae.conf` first, or use a dedicated Linux user for GT4Amiga work.
+
+> **Cloanto/Amiga Forever ROMs**: These are encrypted (`AMIROMTYPE1` header). Place `rom.key` (from your Amiga Forever installation) in `rom/` alongside the `.rom` file. FS-UAE decrypts them automatically when it scans `kickstarts_dir`.
 
 ### 3. vasm
 
