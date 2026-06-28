@@ -26,8 +26,76 @@ The Amiga side runs a small AmigaDOS watcher script that detects new programs dr
 | [GToolkit](https://gtoolkit.com) | The Pharo-based live environment that hosts the book |
 | `vasmm68k_mot` | Motorola-syntax 68k assembler. Build from [source](http://sun.hasenbraten.de/vasm/) or install via your package manager |
 | [FS-UAE](https://fs-uae.net) | Amiga emulator (for the emulator target) |
-| Kickstart ROM | A legal dump from your own Amiga (1.3, 2.0 or 3.1 recommended) |
-| Workbench HDF | A minimal AmigaOS hard-drive image with `c/Execute`, `c/Wait`, and `c/Delete` |
+| Kickstart ROM | A legal ROM dump (1.3 recommended). Cloanto/Amiga Forever encrypted ROMs (`.rom` + `rom.key`) are supported |
+| Workbench HDF | An AmigaOS hard-drive image with `c/Execute`, `c/Wait`, and `c/Delete` |
+
+## Project structure
+
+```
+gt4amiga/
+├── src/
+│   ├── BaselineOfGT4Amiga/       Metacello baseline
+│   ├── GT4Amiga-Core/            Assembler wrapper, result, configuration
+│   ├── GT4Amiga-FSUAE/           FS-UAE process manager + serial capture
+│   └── GT4Amiga-Lepiter/         Custom Lepiter snippet type and element
+├── lepiter/                      Lepiter knowledge base (book pages)
+├── rom/                          Kickstart ROM files (git-ignored)
+├── hdf/                          Workbench HDF images (git-ignored)
+├── shared/                       Host↔Amiga file exchange directory
+│   ├── incoming/                 Programs sent to the Amiga
+│   └── outgoing/                 Output captured from the Amiga
+└── amiga/s/                      AmigaDOS scripts (watcher, user-startup)
+```
+
+## Setup
+
+### 1. ROM and disk images
+
+Place your files in the project directories (both are git-ignored):
+
+```
+rom/
+├── kick13.rom        ← Kickstart ROM (any name, .rom extension)
+└── rom.key           ← Required only for Cloanto/Amiga Forever encrypted ROMs
+hdf/
+└── workbench.hdf     ← Workbench hard-drive image (any name, .hdf extension)
+```
+
+`GT4AmigaConfiguration` auto-detects the first `.rom` file in `rom/` and the first `.hdf` file in `hdf/`. No manual path configuration needed.
+
+### 2. FS-UAE system config
+
+FS-UAE determines the Kickstarts directory during early initialisation, before reading the per-session config file. You must tell it where to find your ROMs by adding one line to its user config:
+
+```
+# ~/.config/fs-uae/fs-uae.conf
+kickstarts_dir = /home/<you>/work/gt4amiga/rom
+```
+
+Replace the path with the absolute path to the `rom/` directory in your checkout. This only needs to be done once. Without it, FS-UAE falls back to the built-in AROS ROM regardless of what the session config specifies.
+
+> **Cloanto/Amiga Forever ROMs**: These are encrypted (`AMIROMTYPE1` header, 262155 bytes). Place `rom.key` (from your Amiga Forever installation) alongside the `.rom` file. FS-UAE decrypts them automatically when `kickstarts_dir` is set correctly.
+
+### 3. vasm
+
+`GT4AmigaConfiguration` searches for `vasmm68k_mot` in these locations, in order:
+
+1. `/home/<you>/local/vasm/vasmm68k_mot`
+2. `/usr/local/bin/vasmm68k_mot`
+3. `/usr/bin/vasmm68k_mot`
+4. Bare name `vasmm68k_mot` (PATH lookup)
+
+Build from [source](http://sun.hasenbraten.de/vasm/) and place the binary in any of the above locations.
+
+### 4. Amiga-side watcher
+
+Copy the contents of `amiga/s/` to your Workbench disk image and add the following line to `s/user-startup`:
+
+```
+Run >NIL: GT4A:s/gt4amiga-watcher
+```
+
+This starts the poll loop that watches for programs sent from the host and redirects their output to the serial port. `GT4A:` is the label FS-UAE gives to the `shared/` directory (mounted as DH1).
 
 ## Loading in GToolkit
 
@@ -40,36 +108,26 @@ Metacello new
     load.
 ```
 
-This loads the three packages (`GT4Amiga-Core`, `GT4Amiga-FSUAE`, `GT4Amiga-Lepiter`) and registers the custom `amiga68kSnippet` type with Lepiter automatically.
+This loads `GT4Amiga-Core`, `GT4Amiga-FSUAE`, and `GT4Amiga-Lepiter`, and registers the custom `amiga68kSnippet` type with Lepiter automatically.
 
-## Initial setup
-
-Configure the paths to your local tools and ROM images once, then forget about it:
+Then attach the Lepiter knowledge base:
 
 ```smalltalk
-GT4AmigaConfiguration default
-    vasmPath: '/usr/local/bin/vasmm68k_mot';
-    fsuaePath: '/usr/bin/fs-uae';
-    kickstartPath: '/path/to/kick13.rom' asFileReference;
-    workbenchHdfPath: '/path/to/workbench.hdf' asFileReference;
-    sharedDirectory: '/path/to/gt4amiga/shared' asFileReference;
-    serialPort: 2345;
-    yourself.
+BaselineOfGT4Amiga loadLepiter.
 ```
 
-### Amiga-side watcher
+The book pages will appear in the Lepiter browser.
 
-Copy the contents of `amiga/s/` to your Workbench disk image and add the following line to `s/user-startup`:
+## Book contents
 
-```
-Run >NIL: GT4A:s/gt4amiga-watcher
-```
+| Page | Description |
+|------|-------------|
+| **El Ensamblador — Primeros Pasos** | How the assembler works: three progressive examples from a minimal `rts`-only program to arithmetic and data-section access |
+| **Hola Amiga — Primer Programa 68000** | AmigaOS library calling convention, `dos.library`, and a fully annotated Hello World in 68000 assembly |
 
-This starts the poll loop that watches for programs sent from the host and redirects their output to the serial port.
+## Quick start (Playground)
 
-## Quick start
-
-Evaluate this in a GToolkit Playground to assemble and inspect a result without opening a Lepiter page:
+Assemble without opening a Lepiter page:
 
 ```smalltalk
 GT4AmigaAssembler new assemble: '
@@ -81,7 +139,7 @@ start:
 '
 ```
 
-To assemble and run on FS-UAE:
+Assemble and run on FS-UAE:
 
 ```smalltalk
 | result |
@@ -89,40 +147,13 @@ result := GT4AmigaAssembler new assemble: '...'.
 GT4FSUAERunner default run: result.
 ```
 
-## Opening the book
-
-After loading the project, attach the Lepiter database to GToolkit:
-
-```smalltalk
-LeDatabasesRegistry uniqueInstance
-    loadAndMonitorDatabase:
-        LeLocalStoreBasedDatabase new
-            localStoreRootDirectory:
-                '/path/to/gt4amiga/lepiter' asFileReference.
-```
-
-The book pages will appear in the Lepiter browser. The first page, **"Hola Amiga — Primer Programa 68000"**, walks through the AmigaOS library calling convention and a fully annotated Hello World in 68000 assembly.
-
-## Project structure
-
-```
-gt4amiga/
-├── src/
-│   ├── BaselineOfGT4Amiga/       Metacello baseline
-│   ├── GT4Amiga-Core/            Assembler wrapper, result, configuration
-│   ├── GT4Amiga-FSUAE/           FS-UAE process manager + serial capture
-│   └── GT4Amiga-Lepiter/         Custom Lepiter snippet type and element
-├── lepiter/                      Lepiter knowledge base (book pages)
-├── amiga/s/                      AmigaDOS scripts (watcher, user-startup)
-└── configs/fsuae/                FS-UAE configuration template
-```
-
 ## Roadmap
 
 - [x] 68000 assembler integration (`vasmm68k_mot`)
 - [x] FS-UAE runner with shared-directory file exchange and serial capture
 - [x] Custom `amiga68kSnippet` type for Lepiter pages
-- [x] First book page: AmigaOS library calling convention + Hello World
+- [x] Auto-detection of vasm, Kickstart ROM and Workbench HDF paths
+- [x] First book pages: assembler primer + AmigaOS Hello World
 - [ ] Syntax highlighting for 68000 assembly in the snippet editor
 - [ ] Bare-metal mode: bootable ADF generation for hardware-direct demos
 - [ ] Real hardware target via [A314](https://github.com/niklasekstrom/a314)
