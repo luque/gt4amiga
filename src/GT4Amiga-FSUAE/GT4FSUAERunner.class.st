@@ -201,6 +201,7 @@ GT4FSUAERunner >> fsuaeConfigContent [
 		configuration fastMemory > 0 ifTrue: [
 			s nextPutAll: 'fast_memory = ' , configuration fastMemory printString; nextPutAll: lf ].
 		configuration kickstartPath isNil not ifTrue: [
+			s nextPutAll: 'kickstarts_dir = ' , configuration kickstartPath parent fullName; nextPutAll: lf.
 			s nextPutAll: 'kickstart_file = ' , configuration kickstartPath fullName; nextPutAll: lf ].
 		configuration workbenchHdfPath isNil not ifTrue: [
 			s nextPutAll: 'hard_drive_0 = ' , configuration workbenchHdfPath fullName; nextPutAll: lf.
