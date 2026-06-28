@@ -52,14 +52,15 @@ GT4FSUAERunner >> configuration: aConfiguration [
 
 { #category : #lifecycle }
 GT4FSUAERunner >> launch [
-	"Start FS-UAE with the current configuration.
-	 The Amiga will boot and wait for programs via the shared directory."
+	"Write config to ~/.config/fs-uae/fs-uae.conf (the only path FS-UAE reads
+	 during early-init, where hard drives and kickstarts_dir are processed)
+	 then start FS-UAE with no --config= argument."
 	self isRunning ifTrue: [ ^ self ].
 	self prepareSharedDirectory.
-	configFile := self writeFSUAEConfig.
+	self writeFSUAEConfig.
 	fsuaeProcess := GtSubprocessWithInMemoryOutput new
 		command: configuration fsuaePath;
-		arguments: { '--config=' , configFile fullName };
+		arguments: #();
 		run.
 	"Give FS-UAE time to start and the Amiga to boot"
 	(Delay forSeconds: 5) wait
@@ -179,11 +180,14 @@ GT4FSUAERunner >> prepareSharedDirectory [
 
 { #category : #'private - setup' }
 GT4FSUAERunner >> writeFSUAEConfig [
-	"Write the fs-uae config file to a temp location and return it."
+	"Write the FS-UAE config to ~/.config/fs-uae/fs-uae.conf.
+	 FS-UAE reads this file during early initialisation — the only phase
+	 where hard_drive_*, kickstarts_dir and other hardware options are
+	 processed. A session config passed via --config= is read later and
+	 silently ignores those options."
 	| configRef content |
-	configRef := (FileLocator temp / 'gt4amiga') asFileReference.
-	configRef ensureCreateDirectory.
-	configRef := configRef / 'gt4amiga.fs-uae'.
+	configRef := (FileLocator home / '.config' / 'fs-uae' / 'fs-uae.conf') asFileReference.
+	configRef parent ensureCreateDirectory.
 	content := self fsuaeConfigContent.
 	configRef exists ifTrue: [ configRef delete ].
 	configRef writeStreamDo: [ :s | s nextPutAll: content ].
