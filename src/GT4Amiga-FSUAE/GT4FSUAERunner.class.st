@@ -212,7 +212,7 @@ GT4FSUAERunner >> fsuaeConfigContent [
 			s nextPutAll: 'hard_drive_0_label = DH0'; nextPutAll: lf ].
 		s nextPutAll: 'hard_drive_1 = ' , configuration sharedDirectory fullName; nextPutAll: lf.
 		s nextPutAll: 'hard_drive_1_label = GT4A'; nextPutAll: lf.
-		s nextPutAll: 'serial_port = tcp://localhost:' , configuration serialPort printString; nextPutAll: lf.
+		s nextPutAll: 'serial_port = tcp://127.0.0.1:' , configuration serialPort printString; nextPutAll: lf.
 		s nextPutAll: 'fullscreen = 0'; nextPutAll: lf.
 		s nextPutAll: 'window_width = 720'; nextPutAll: lf.
 		s nextPutAll: 'window_height = 568'; nextPutAll: lf ]
