@@ -97,7 +97,7 @@ GT4FSUAERunner >> run: anAssemblyResult [
 		^ 'Assembly failed - cannot run: ' , anAssemblyResult stderr ].
 	self isRunning ifFalse: [ self launch ].
 	self deployProgram: anAssemblyResult outputFile.
-	outputText := self captureOutputWithTimeout: 10.
+	outputText := self captureOutputWithTimeout: 60.
 	^ outputText
 ]
 
@@ -142,8 +142,8 @@ GT4FSUAERunner >> disconnectSerial [
 
 { #category : #'serial communication' }
 GT4FSUAERunner >> captureOutputWithTimeout: seconds [
-	"Read from the serial TCP socket until timeout or terminator received.
-	 Programs signal completion by printing a chr(0) on serial output."
+	"Read from the serial TCP socket until the <<GT4A-DONE>> marker or timeout.
+	 The watcher script sends this marker after the program finishes."
 	| deadline result chunk |
 	self connectSerial.
 	serialSocket isNil ifTrue: [ ^ '' ].
@@ -151,14 +151,14 @@ GT4FSUAERunner >> captureOutputWithTimeout: seconds [
 	result := String new writeStream.
 	[
 		DateAndTime now < deadline and: [
-			result contents includesSubString: (String with: Character null) ] not
+			(result contents includesSubString: '<<GT4A-DONE>>') not ]
 	] whileTrue: [
 		serialSocket isConnected ifFalse: [ ^ result contents ].
 		chunk := self readAvailableFromSerial.
 		chunk isEmpty ifFalse: [ result nextPutAll: chunk ].
 		chunk isEmpty ifTrue: [ (Delay forMilliseconds: 100) wait ]
 	].
-	^ result contents copyReplaceAll: (String with: Character null) with: ''
+	^ (result contents copyReplaceAll: '<<GT4A-DONE>>' with: '') trimSeparators
 ]
 
 { #category : #'serial communication' }

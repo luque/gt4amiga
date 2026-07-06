@@ -4,20 +4,20 @@
 ; Place this in GT4A:s/gt4amiga-watcher on the shared drive.
 ;
 ; Output from the program is captured via SER: (serial device).
-; Programs that produce text output should use DOS Write/Print calls.
-; A chr(0) at the end signals completion to the host.
+; Programs write to their stdout (Output() handle); the >SER: redirect
+; sends it to the TCP socket that GToolkit listens on.
+; The <<GT4A-DONE>> marker signals completion to the host.
 
 :mainloop
   IF EXISTS GT4A:incoming/trigger
     ; Remove trigger first to avoid re-run
     Delete GT4A:incoming/trigger QUIET
 
-    ; Execute the program, redirect stdout to serial port
-    Echo "GT4A:RUN>" >SER:
-    Execute GT4A:incoming/program >SER:
-    Echo "" >SER:
-    ; Send null terminator to signal completion to the host
-    Echo "*N" >SER:
+    ; Run the binary directly (NOT Execute, which runs scripts)
+    GT4A:incoming/program >SER:
+
+    ; Send completion marker so GToolkit knows output is finished
+    Echo "<<GT4A-DONE>>*N" >SER:
   ENDIF
   Wait 1
   Skip mainloop
