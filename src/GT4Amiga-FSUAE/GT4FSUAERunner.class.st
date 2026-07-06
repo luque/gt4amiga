@@ -151,7 +151,7 @@ GT4FSUAERunner >> captureOutputWithTimeout: seconds [
 	result := String new writeStream.
 	[
 		DateAndTime now < deadline and: [
-			(result contents includesSubString: '<<GT4A-DONE>>') not ]
+			(result contents includesSubstring: '<<GT4A-DONE>>') not ]
 	] whileTrue: [
 		serialSocket isConnected ifFalse: [ ^ result contents ].
 		chunk := self readAvailableFromSerial.
