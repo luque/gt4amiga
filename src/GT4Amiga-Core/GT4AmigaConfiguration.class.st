@@ -43,16 +43,25 @@ GT4AmigaConfiguration >> initialize [
 
 { #category : #initialization }
 GT4AmigaConfiguration >> detectProjectDirectory [
-	"Locate the gt4amiga project root. The Iceberg clone may live inside
-	 pharo-local/iceberg/... so we walk up until we find a directory that
-	 contains both src/ and lepiter/ (the true project root)."
+	"Locate the gt4amiga project root. The Iceberg clone (pharo-local/iceberg/...)
+	 is itself a full git clone of the same repo, so it has the identical src/ +
+	 lepiter/ layout - that check alone can't tell it apart from the true project
+	 root and would stop climbing right at the clone. Require an actual .rom file
+	 under rom/ too: ROMs are gitignored (only .gitkeep/.gitignore are committed),
+	 so they only ever exist in the real working checkout, never in Iceberg's clone."
 	IceRepository registry
 		detect: [ :r | r name = 'gt4amiga' ]
 		ifFound: [ :r |
 			| dir |
-			dir := r repositoryDirectory.
+			"resolve: repositoryDirectory is a FileLocator whose parent chain
+			 breaks once it climbs past a segment literally named 'iceberg'
+			 (collides with a registered {gtResource} locator scheme) - resolve
+			 to a plain absolute FileReference first to sidestep that."
+			dir := r repositoryDirectory resolve.
 			[ dir isRoot ] whileFalse: [
-				((dir / 'src') exists and: [ (dir / 'lepiter') exists ])
+				((dir / 'src') exists
+					and: [ (dir / 'lepiter') exists
+					and: [ (self detectKickstartIn: (dir / 'rom')) isNotNil ] ])
 					ifTrue: [ ^ dir ].
 				dir := dir parent ].
 			^ r repositoryDirectory ].
