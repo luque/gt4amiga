@@ -91,13 +91,26 @@ Build from [source](http://sun.hasenbraten.de/vasm/) and place the binary in any
 
 ### 4. Amiga-side watcher
 
-Copy the contents of `amiga/s/` to your Workbench disk image and add the following line to `s/user-startup`:
+`amiga/s/` is the canonical, git-tracked source for the AmigaDOS scripts. `shared/s/` is the directory FS-UAE actually mounts as `GT4A:` (DH1) at runtime — it is **not** the same folder and is not tracked in git, so on a fresh checkout it doesn't exist yet. Copy the scripts there first:
 
-```
-Run >NIL: GT4A:s/gt4amiga-watcher
+```sh
+mkdir -p shared/s
+cp amiga/s/* shared/s/
 ```
 
-This starts the poll loop that watches for programs sent from the host and redirects their output to the serial port. `GT4A:` is the label FS-UAE gives to the `shared/` directory (mounted as DH1).
+`gt4amiga-watcher` re-invokes itself from `GT4A:` on every iteration (see the script's own comments for why), so after this one copy you never need to touch the HDF again to change the watcher's logic — just edit `amiga/s/gt4amiga-watcher`, re-run the `cp` above, and the next iteration on the Amiga side picks it up live.
+
+`S:User-Startup`, however, lives *inside* the Workbench HDF image, which the host has no direct way to write into. It only needs to be set once per HDF (it's baked into the `.hdf` file itself and persists across restarts). To set it up:
+
+1. Boot FS-UAE with the HDF (`Launch FS-UAE` from the page, or run it directly) so `GT4A:` is mounted alongside `DH0:`.
+2. Open an Amiga Shell and run:
+   ```
+   Copy GT4A:s/user-startup S:User-Startup
+   ```
+   (`amiga/s/user-startup` just contains `Run >NIL: Execute GT4A:s/gt4amiga-watcher` — feel free to inspect it before copying.)
+3. Reboot the Amiga (`Ctrl-Amiga-Amiga` or relaunch FS-UAE). From now on the watcher starts automatically and polls `GT4A:incoming/` for new programs, redirecting their output to the serial port.
+
+`GT4A:` is the label FS-UAE gives to the `shared/` directory (mounted as DH1).
 
 ## Loading in GToolkit
 
