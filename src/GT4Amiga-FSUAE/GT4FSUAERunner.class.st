@@ -126,11 +126,28 @@ GT4FSUAERunner >> deployProgram: aProgramFile [
 
 { #category : #'serial communication' }
 GT4FSUAERunner >> connectSerial [
-	"Connect to the FS-UAE serial port (TCP socket)."
-	serialSocket isNil ifFalse: [ ^ self ].
-	[ serialSocket := Socket newTCP.
-	  serialSocket connectTo: NetNameResolver localHostAddress port: configuration serialPort.
-	] on: Error do: [ :e | serialSocket := nil ]
+	"Connect to the FS-UAE serial port (TCP socket).
+	 Uses an explicit short timeout: Socket standardTimeout is too long
+	 (tens of seconds), which made connection attempts appear to hang
+	 when FS-UAE's listener wasn't ready yet. Retries a few times since
+	 FS-UAE may still be booting when this is first called.
+	 Checking isConnected (not just isNil) matters: a socket whose peer
+	 closed goes stale (visible as CLOSE-WAIT) but stays non-nil, so a
+	 pure isNil guard would keep reusing a dead connection forever."
+	(serialSocket isNil not and: [ serialSocket isConnected ]) ifTrue: [ ^ self ].
+	serialSocket isNil ifFalse: [
+		[ serialSocket close ] on: Error do: [ :e | ].
+		serialSocket := nil ].
+	3 timesRepeat: [
+		[ serialSocket := Socket newTCP.
+		  serialSocket
+			connectTo: (NetNameResolver addressForName: '127.0.0.1')
+			port: configuration serialPort
+			waitForConnectionFor: 3.
+		  serialSocket isConnected ifTrue: [ ^ self ] ]
+			on: Error
+			do: [ :e | serialSocket := nil ].
+		(Delay forSeconds: 2) wait ]
 ]
 
 { #category : #'serial communication' }
@@ -158,7 +175,7 @@ GT4FSUAERunner >> captureOutputWithTimeout: seconds [
 		chunk isEmpty ifFalse: [ result nextPutAll: chunk ].
 		chunk isEmpty ifTrue: [ (Delay forMilliseconds: 100) wait ]
 	].
-	^ (result contents copyReplaceAll: '<<GT4A-DONE>>' with: '') trimSeparators
+	^ (result contents copyReplaceAll: '<<GT4A-DONE>>' with: '') trimmed
 ]
 
 { #category : #'serial communication' }

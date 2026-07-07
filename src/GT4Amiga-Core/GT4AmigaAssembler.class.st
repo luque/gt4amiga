@@ -42,7 +42,11 @@ GT4AmigaAssembler >> assemble: sourceString [
 { #category : #assembling }
 GT4AmigaAssembler >> assemble: sourceString format: aSymbol [
 	"Assemble 68000 source code. aSymbol can be #hunk (AmigaOS executable) or #bin (flat binary).
-	 Returns a GT4AmigaAssemblyResult."
+	 Returns a GT4AmigaAssemblyResult.
+	 -kick1hunks is required: vasm's default hunkexe relocations use the compact
+	 HUNK_DREL32 encoding (OS 2.0+ only), which real Kickstart/Workbench 1.3
+	 LoadSeg() rejects outright as 'not an object module'. -kick1hunks forces
+	 the classic HUNK_RELOC32 encoding understood since Kickstart 1.x."
 	| workDir sourceFile outputFile formatFlag result proc |
 
 	workDir := FileLocator temp / 'gt4amiga'.
@@ -54,13 +58,14 @@ GT4AmigaAssembler >> assemble: sourceString format: aSymbol [
 
 	sourceFile writeStreamDo: [ :s | s nextPutAll: sourceString ].
 
-	formatFlag := aSymbol = #bin ifTrue: [ '-Fbin' ] ifFalse: [ '-Fhunk' ].
+	formatFlag := aSymbol = #bin ifTrue: [ '-Fbin' ] ifFalse: [ '-Fhunkexe' ].
 
 	proc := GtSubprocessWithInMemoryOutput new
 		command: configuration vasmPath;
 		arguments: {
 			'-m68000'.
 			formatFlag.
+			'-kick1hunks'.
 			'-spaces'.
 			'-o'. outputFile fullName.
 			sourceFile fullName };

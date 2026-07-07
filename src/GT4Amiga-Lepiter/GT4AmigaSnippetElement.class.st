@@ -136,7 +136,7 @@ GT4AmigaSnippetElement >> showOutput: aString [
 	outputPane removeChildren.
 	(aString isNil or: [ aString isEmpty ]) ifTrue: [ ^ self ].
 	outputLabel := BrLabel new
-		aptitude: BrGlamorousMonospacedLabelAptitude new;
+		aptitude: BrGlamorousLabelAptitude new;
 		text: aString asRopedText;
 		padding: (BlInsets all: 8);
 		yourself.

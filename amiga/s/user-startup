@@ -3,4 +3,4 @@
 ; GT4A: is already available as a device — FS-UAE mounts the shared
 ; directory with that label automatically, no Assign needed.
 
-Run >NIL: GT4A:s/gt4amiga-watcher
+Run >NIL: Execute GT4A:s/gt4amiga-watcher

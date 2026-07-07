@@ -6,18 +6,33 @@
 ; Output from the program is captured via SER: (serial device).
 ; Programs write to their stdout (Output() handle); the >SER: redirect
 ; sends it to the TCP socket that GToolkit listens on.
-; The <<GT4A-DONE>> marker signals completion to the host.
+; The completion marker (see done-marker file) signals end to the host.
+;
+; NOTE 1: AmigaDOS 1.3 has no "SKIP BACK" (added in 2.0), so a label+Skip
+; loop cannot go backward. Instead this script re-invokes itself at the
+; end. It uses Run (not Execute) to relaunch as a fresh detached process
+; and then exits immediately - using Execute here would nest each iteration
+; inside the previous one (parent waits for child), growing the process
+; stack without bound until it eventually crashes silently after a few
+; minutes of polling.
+;
+; NOTE 2: "Echo ... >SER:" fails with "Invalid argument to ECHO" on this
+; AmigaDOS 1.3 setup, even though Copy/Dir redirection to SER: works fine.
+; So the completion marker is a static file, sent via Copy instead of Echo.
+;
+; NOTE 3: comments containing double angle-bracket sequences confuse this
+; Execute's parser once a real redirection appears later in the script
+; (fails with "EXECUTE: No K directive"). Avoid those characters in comments.
 
-:mainloop
-  IF EXISTS GT4A:incoming/trigger
-    ; Remove trigger first to avoid re-run
-    Delete GT4A:incoming/trigger QUIET
+IF EXISTS GT4A:incoming/trigger
+  ; Remove trigger first to avoid re-run
+  Delete GT4A:incoming/trigger QUIET
 
-    ; Run the binary directly (NOT Execute, which runs scripts)
-    GT4A:incoming/program >SER:
+  ; Run the binary directly (NOT Execute, which runs scripts)
+  GT4A:incoming/program >SER:
 
-    ; Send completion marker so GToolkit knows output is finished
-    Echo "<<GT4A-DONE>>*N" >SER:
-  ENDIF
-  Wait 1
-  Skip mainloop
+  ; Send completion marker so GT knows output is finished
+  Copy GT4A:s/gt4amiga-done-marker SER:
+ENDIF
+Wait 1
+Run >NIL: Execute GT4A:s/gt4amiga-watcher
