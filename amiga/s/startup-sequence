@@ -1,0 +1,51 @@
+; $VER: Startup-Sequence_HardDrive 34.35 (12.2.04)
+; Startup-Sequence for hard drive systems
+;
+; Amiga Forever edition � Cloanto � 1997-2015
+; cloanto.com/kb/16-123
+
+C:SetPatch >NIL: ; Patch system functions
+C:AddBuffers >NIL: DF0: 10
+
+CD C:
+Echo "Amiga Workbench Disk. Release 1.3.5 version 34.34"
+SYS:System/FastMemFirst ; Move C00000 memory to last in list
+BindDrivers
+SetClock >NIL: LOAD
+
+; FF >NIL: -0 ; Speed up text ; Not compatible with faster-than-real systems
+Resident CLI L:Shell-Seg SYSTEM PURE ADD ; Activate Shell
+Resident C:Execute PURE
+Mount NEWCON:
+
+Resident C:Resident PURE
+Resident C:List PURE
+Resident C:CD PURE
+
+MakeDir RAM:T
+Assign T: RAM:T
+MakeDir RAM:ENV
+Assign ENV: RAM:ENV
+MakeDir RAM:Clipboards
+Assign CLIPS: RAM:Clipboards
+Mount SPEAK: ; Just mounting doesn't take much RAM at all
+Mount AUX:
+Mount PIPE:
+
+SYS:System/SetMap usa1 ; Activate the ()/* on keypad
+Path RAM: C: SYS:Utilities SYS:System S: SYS:Prefs ADD ; Set path for Workbench
+
+;BEGIN AF-Shared
+Execute S:AFShared-Startup
+;END AF-Shared
+
+LoadWB DELAY ; Wait for inhibit to end before continuing
+
+; GT4Amiga: this HDF's stock Startup-Sequence never calls S:User-Startup,
+; so anything placed there (see amiga/s/user-startup) was silently never
+; run. Add the standard hook here so it is.
+IF EXISTS S:User-Startup
+EXECUTE S:User-Startup
+ENDIF
+
+EndCLI >NIL:

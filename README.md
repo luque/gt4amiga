@@ -44,7 +44,7 @@ gt4amiga/
 ├── shared/                       Host↔Amiga file exchange directory
 │   ├── incoming/                 Programs sent to the Amiga
 │   └── outgoing/                 Output captured from the Amiga
-└── amiga/s/                      AmigaDOS scripts (watcher, user-startup)
+└── amiga/s/                      AmigaDOS scripts (watcher, user-startup, startup-sequence)
 ```
 
 ## Setup
@@ -111,6 +111,12 @@ cp amiga/s/* shared/s/
 3. Reboot the Amiga (`Ctrl-Amiga-Amiga` or relaunch FS-UAE). From now on the watcher starts automatically and polls `GT4A:incoming/` for new programs, redirecting their output to the serial port.
 
 `GT4A:` is the label FS-UAE gives to the `shared/` directory (mounted as DH1).
+
+> **Some Workbench images never call `S:User-Startup` at all.** Amiga Forever's Workbench 1.3.5 `Startup-Sequence`, for example, ends with `LoadWB` / `EndCLI` and has no `IF EXISTS S:User-Startup` / `EXECUTE S:User-Startup` / `ENDIF` hook — so step 2 above silently has no effect: the file is copied but never executed, and the watcher doesn't start after reboot. Check with `Type S:Startup-Sequence`; if that hook is missing, install the corrected version (which adds it right before `EndCLI`) instead:
+> ```
+> Copy GT4A:s/startup-sequence S:Startup-Sequence
+> ```
+> (`amiga/s/startup-sequence` is the stock Amiga Forever WB 1.3.5 script with just that hook added — diff it against your HDF's own `Startup-Sequence` before copying if your image differs.)
 
 ## Loading in GToolkit
 
