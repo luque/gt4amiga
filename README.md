@@ -44,7 +44,7 @@ gt4amiga/
 ├── shared/                       Host↔Amiga file exchange directory
 │   ├── incoming/                 Programs sent to the Amiga
 │   └── outgoing/                 Output captured from the Amiga
-└── amiga/s/                      AmigaDOS scripts (watcher, user-startup, startup-sequence)
+└── amiga/s/                      AmigaDOS scripts (watcher, user-startup, startup-sequence) and gt4amiga-monitor.s (bridge server, 68k assembly)
 ```
 
 ## Setup
@@ -118,6 +118,22 @@ cp amiga/s/* shared/s/
 > ```
 > (`amiga/s/startup-sequence` is the stock Amiga Forever WB 1.3.5 script with just that hook added — diff it against your HDF's own `Startup-Sequence` before copying if your image differs.)
 
+### 5. Bridge server (live memory / library-call access)
+
+Besides the one-shot assemble → deploy → run pipeline, `GT4Amiga-Bridge` provides `GT4AmigaMonitorClient`: a Pharo-side client for `amiga/s/gt4amiga-monitor.s`, a resident AmigaDOS program that answers a small binary protocol over `SER:` — memory peek/poke and generic AmigaOS library calls — without assembling and launching a new program each time. This is what powers things like live-updating a Workbench palette color from a GToolkit slider.
+
+```smalltalk
+GT4AmigaMonitorClient default deploy.
+"then, in the Amiga Shell: Run >NIL: GT4A:incoming/monitor"
+
+GT4AmigaMonitorClient default workbenchScreenPointer.
+GT4AmigaMonitorClient default readMemoryAt: 16r00DFF180 size: 2. "COLOR00"
+```
+
+The monitor and the one-shot watcher pipeline share the single emulated serial port, so only one can be in use at a time. See the class comment on `GT4AmigaMonitorClient` for the full protocol and the design dead-ends already ruled out (notably: `LockPubScreen()` is Kickstart 2.0+ only and does not exist on the Kickstart 1.3 target this project uses).
+
+> **Known issue**: `setColor:red:green:blue:` (which calls `graphics.library/SetRGB4` to change a Workbench palette color live) reliably changes the color on screen but has repeatedly crashed the emulated Amiga shortly after (Guru Meditation `#00000003`, an Address Error) — under investigation, suspected to be a race between this asynchronous call and the Copper reading the same list in real time.
+
 ## Loading in GToolkit
 
 Open a Pharo Playground inside GToolkit and evaluate:
@@ -176,6 +192,8 @@ GT4FSUAERunner default run: result.
 - [x] Custom `amiga68kSnippet` type for Lepiter pages
 - [x] Auto-detection of vasm, Kickstart ROM and Workbench HDF paths
 - [x] First book pages: assembler primer + AmigaOS Hello World
+- [x] Second book page: taking and releasing hardware control (`Forbid`/`Disable`, DMA)
+- [ ] Bridge server (`GT4AmigaMonitorClient`): live memory/library-call access over SER: — working for memory peek/poke and generic calls, `setColor:` still crashes intermittently (see README §5)
 - [ ] Syntax highlighting for 68000 assembly in the snippet editor
 - [ ] Bare-metal mode: bootable ADF generation for hardware-direct demos
 - [ ] Real hardware target via [A314](https://github.com/niklasekstrom/a314)
