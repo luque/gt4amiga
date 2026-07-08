@@ -35,6 +35,23 @@ GT4AmigaSnippet class >> typeName [
 	^ 'amiga68k'
 ]
 
+{ #category : #accessing }
+GT4AmigaSnippet class >> description [
+	^ 'Amiga 68k'
+]
+
+{ #category : #'gt-extensions' }
+GT4AmigaSnippet class >> contextMenuItemSpecification [
+	"This pragma is how LeContextMenuSnippetItemsCollector discovers snippet
+	 types for the 'new snippet' menu - see its class comment. Without this
+	 method GT4AmigaSnippet is invisible in that menu even though JSON
+	 round-tripping and everything else about the type works fine."
+	<leSnippetSpecification>
+	^ LeContextMenuItemSpecification new
+		snippetClass: self;
+		title: self description
+]
+
 { #category : #initialization }
 GT4AmigaSnippet >> initialize [
 	super initialize.
