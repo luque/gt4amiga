@@ -114,6 +114,33 @@ GT4AmigaMonitorClient >> deploy [
 ]
 
 { #category : #'protocol' }
+GT4AmigaMonitorClient >> moveScreenBy: deltaY [
+	"Move the Workbench screen vertically by deltaY pixels (screen
+	 resolution units) via intuition.library MoveScreen(screen,dx,dy) -
+	 LVO -162, a0=screen, d0=dx, d1=dy. dx is always 0: per the official
+	 autodoc, nonzero dx is only supported from V36 (Kickstart 2.0) on -
+	 our Kickstart 1.3 target requires dx=0. MoveScreen is asynchronous
+	 and documented as giving 'unexpected results' if called too fast in
+	 succession - callers (e.g. a slider) must pace/throttle updates,
+	 not call this on every pixel of drag."
+	| screen |
+	screen := self workbenchScreenPointer.
+	screen ifNil: [ ^ nil ].
+	^ self callLibrary: 2 lvo: -162 a0: screen a1: 0 d0: 0 d1: deltaY
+]
+
+{ #category : #'protocol' }
+GT4AmigaMonitorClient >> moveWorkbenchScreenToTop: targetY [
+	"Move the Workbench screen so its TopEdge becomes targetY, by reading
+	 the current position and calling moveScreenBy: with the difference
+	 (MoveScreen takes a relative delta, not an absolute position)."
+	| currentTop |
+	currentTop := self workbenchScreenTop.
+	currentTop ifNil: [ ^ nil ].
+	^ self moveScreenBy: targetY - currentTop
+]
+
+{ #category : #'protocol' }
 GT4AmigaMonitorClient >> quit [
 	"Ask the monitor to close its libraries and SER: and return, ending
 	 the Run'd process cleanly."
@@ -201,6 +228,16 @@ GT4AmigaMonitorClient >> workbenchScreenPointer [
 	resp := self readExactly: 4 from: sock.
 	resp size = 4 ifFalse: [ ^ nil ].
 	^ self bytesToLong: resp
+]
+
+{ #category : #'protocol' }
+GT4AmigaMonitorClient >> workbenchScreenTop [
+	"Screen->TopEdge (offset 10, a signed WORD) of the current Workbench
+	 screen - see moveWorkbenchScreenToTop:."
+	| screen |
+	screen := self workbenchScreenPointer.
+	screen ifNil: [ ^ nil ].
+	^ self readMemoryAt: screen + 10 size: 2
 ]
 
 { #category : #'protocol' }
