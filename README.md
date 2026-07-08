@@ -132,7 +132,7 @@ GT4AmigaMonitorClient default readMemoryAt: 16r00DFF180 size: 2. "COLOR00"
 
 The monitor and the one-shot watcher pipeline share the single emulated serial port, so only one can be in use at a time. See the class comment on `GT4AmigaMonitorClient` for the full protocol and the design dead-ends already ruled out (notably: `LockPubScreen()` is Kickstart 2.0+ only and does not exist on the Kickstart 1.3 target this project uses).
 
-> **Known issue**: `setColor:red:green:blue:` (which calls `graphics.library/SetRGB4` to change a Workbench palette color live) reliably changes the color on screen but has repeatedly crashed the emulated Amiga shortly after (Guru Meditation `#00000003`, an Address Error) — under investigation, suspected to be a race between this asynchronous call and the Copper reading the same list in real time.
+> **Known issue, unresolved**: `setColor:red:green:blue:` (which calls `graphics.library/SetRGB4` to change a Workbench palette color live) reliably changes the color on screen but then reliably crashes the emulated Amiga. Two crashes seen so far had *different* Guru Meditation codes (`#00000003` Address Error, then `#00000004` Illegal Instruction) at different addresses, which points to a corrupted return address rather than one deterministic bad instruction — and the same crash reproduces even calling `SetRGB4` from a brand-new one-shot program via the ordinary `GT4FSUAERunner` pipeline, so it isn't specific to the monitor's execution context. A `WaitTOF()`-before-`SetRGB4` fix was tried and is its own dead end: it hangs the monitor forever instead of crashing. See the method comment on `setColor:red:green:blue:` before picking this back up.
 
 ## Loading in GToolkit
 

@@ -29,7 +29,8 @@ Design notes and dead ends, so they are not re-discovered the hard way:
 - The monitor does NOT call Forbid()/Disable(): that would break its own SER: I/O, which depends on interrupts to complete (Read()/Write() via dos.library).
 - LockPubScreen() is Kickstart 2.0/V36+ only - it does not exist in the intuition.library jump table on our Kickstart 1.3 target, and calling its LVO there executes garbage and crashes (Guru #00000003, Address Error). Confirmed via the "(V36)" tag on its official autodoc. Use workbenchScreenPointer (a direct read of IntuitionBase->FirstScreen, offset 60) instead - no locking concept exists yet in 1.3 anyway.
 - A raw poke to a color register (via writeMemoryAt:size:value: on $DFF180/COLOR00) is overwritten by Workbench''s own Copper list within ~20ms (one frame) - it is not a persistent change. Disabling only the Copper''s DMA channel to stop that is WORSE: the Copper is what resets the bitplane DMA pointers every frame, so without it bitplane DMA keeps marching through RAM producing corrupted/changing graphics.
-- graphics.library/SetRGB4(vp,n,r,g,b) is the correct, version-safe (no version tag on its autodoc) way to change a screen color persistently: it patches the matching MOVE instruction already present in the live Copper list. See setColor:red:green:blue: - CURRENTLY KNOWN TO CRASH shortly after changing the color (see its method comment) - under investigation.
+- graphics.library/SetRGB4(vp,n,r,g,b) is the correct, version-safe (no version tag on its autodoc) way to change a screen color persistently: it patches the matching MOVE instruction already present in the live Copper list. See setColor:red:green:blue: - KNOWN, UNRESOLVED CRASH after changing the color - do not spend more time on this without a new angle, see its method comment.
+- graphics.library/WaitTOF() (LVO -270, no version tag, should be safe since 1.0) was tried as a possible fix for the SetRGB4 crash (theory: syncing to vblank before patching the live Copper list). Calling it from gt4amiga-monitor HANGS FOREVER (not a crash - the monitor stops responding to any further command, including previously-reliable ones) and repeatedly pegged the host GT image''s CPU at 100%+ for many minutes. Do not call WaitTOF from this monitor - dead end, not just an unproven idea.
 
 Canonical source for all LVOs/struct offsets used here: amigadev.elowar.com (WebFetch fails on this host - self-signed/expired cert - use `curl -sk` via Bash instead).'
 
@@ -154,13 +155,24 @@ GT4AmigaMonitorClient >> setColor: colorIndex red: r green: g blue: b [
 	 d0=n, d1=r, d2=g, d3=b. viewport is workbenchScreenPointer+44
 	 (Screen->ViewPort, an embedded struct - see class comment).
 
-	 KNOWN ISSUE (under investigation): this reliably changes the color
-	 on screen, but has repeatedly crashed the Amiga (Guru #00000003,
-	 Address Error) shortly after - suspected cause is that SetRGB4
-	 patches the live Copper list while it is being read by the Copper
-	 in real time, and calling it asynchronously from this background
-	 process (rather than from Intuition's own input task, which has
-	 some implicit synchronization) may hit that race more often."
+	 KNOWN ISSUE, UNRESOLVED - stop and think before touching this again:
+	 this reliably changes the color on screen, then reliably crashes the
+	 Amiga shortly after. Two crashes observed so far had DIFFERENT Guru
+	 codes (#00000003 Address Error at $00C2E188, then #00000004 Illegal
+	 Instruction at $00C32860) - different exception type AND address each
+	 time, which points to a corrupted return address / jump to garbage
+	 memory (stack imbalance somewhere) rather than one deterministic bad
+	 instruction. Ruled out: calling this asynchronously from a background
+	 task racing the Copper - the SAME crash reproduces even calling
+	 SetRGB4 from a brand-new one-shot program via the ordinary
+	 GT4FSUAERunner pipeline (built and tested while debugging this), so
+	 it is not specific to gt4amiga-monitor's execution context. WaitTOF()
+	 before SetRGB4 was tried as a fix and is a dead end of its own (see
+	 class comment) - do not retry it. Next angle, if picked back up: look
+	 for genuine stack corruption around the call (not a simple
+	 register/calling-convention mistake, those have already been checked
+	 carefully), or reconsider MrgCop/SetRGB4 behavior specifics for this
+	 exact ROM/FS-UAE combination."
 	| screen viewport |
 	screen := self workbenchScreenPointer.
 	screen ifNil: [ ^ nil ].
