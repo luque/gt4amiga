@@ -145,6 +145,7 @@ The book pages will appear in the Lepiter browser.
 |------|-------------|
 | **El Ensamblador — Primeros Pasos** | How the assembler works: three progressive examples from a minimal `rts`-only program to arithmetic and data-section access |
 | **Hola Amiga — Primer Programa 68000** | AmigaOS library calling convention, `dos.library`, and a fully annotated Hello World in 68000 assembly |
+| **Tomar y Liberar el Hardware — Forbid, Disable y DMA** | Taking exclusive control of Amiga hardware (`Forbid`/`Disable`, DMA takeover) and releasing it cleanly so the OS survives, adapted from *Amiga Assembly Game Programming* chapter 4 |
 
 ## Quick start (Playground)
 
