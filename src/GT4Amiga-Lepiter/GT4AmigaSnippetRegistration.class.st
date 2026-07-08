@@ -12,28 +12,14 @@ GT4AmigaSnippetRegistration class >> register [
 	 via LeSnippet allSubclasses and uses typeName to build the __type mapping.
 	 So just loading this package is enough for serialization/deserialization.
 
-	 This method handles additional registrations:
-	 - 'New Snippet' menu entry in Lepiter pages
-	 - Optional: syntax highlighting styler
+	 The 'new snippet' menu entry needs no registration call at all: it is
+	 discovered via the <leSnippetSpecification> pragma on
+	 GT4AmigaSnippet class >> #contextMenuItemSpecification (see
+	 LeContextMenuSnippetItemsCollector's class comment).
 
 	 Call once after loading GT4Amiga-Lepiter, e.g. from a startup action."
 
-	self registerInNewSnippetMenu.
 	self registerInJsonV4IfNeeded
-]
-
-{ #category : #registration }
-GT4AmigaSnippetRegistration class >> registerInNewSnippetMenu [
-	"Add GT4AmigaSnippet to the + menu in Lepiter pages."
-	| registryClass |
-	registryClass := Smalltalk globals
-		at: #LeSnippetTypeRegistry
-		ifAbsent: [ ^ self ].
-	(registryClass respondsTo: #uniqueInstance)
-		ifFalse: [ ^ self ].
-	[ registryClass uniqueInstance register: GT4AmigaSnippet ]
-		on: Error
-		do: [ :e | "Ignore - menu registration is optional" ]
 ]
 
 { #category : #registration }
