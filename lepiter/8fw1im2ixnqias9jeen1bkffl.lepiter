@@ -1,0 +1,184 @@
+{
+	"__schema" : "4.1",
+	"__type" : "page",
+	"children" : {
+		"__type" : "snippets",
+		"items" : [
+			{
+				"__type" : "textSnippet",
+				"children" : {
+					"__type" : "snippets",
+					"items" : [ ]
+				},
+				"createEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"createTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-08T16:23:26.538055+02:00"
+					}
+				},
+				"editEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"editTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-08T16:23:26.538055+02:00"
+					}
+				},
+				"uid" : {
+					"__type" : "uid",
+					"uidString" : "YJ+Sx1y8R0Wzq5rfZC0BKA=="
+				},
+				"paragraphStyle" : {
+					"__type" : "textStyle"
+				},
+				"string" : "Un demo o un juego para Amiga suele necesitar **control exclusivo del hardware**: apagar el multitasking, silenciar las interrupciones del sistema y decidir a mano qué canales de DMA están activos, en vez de dejar que el Kickstart gestione la pantalla, el ratón o el disco por su cuenta. Esto le da control total sobre el timing de copper, blitter y bitplanes.\n\nPero tomar el hardware sin devolverlo **de forma ordenada** deja el sistema operativo inservible: si el programa termina sin restaurar el DMA y sin reactivar interrupciones/multitasking, cualquier cosa que se ejecute después de él (incluido el propio Shell que lo invocó) queda colgada o se comporta de forma errática.\n\nEsto es especialmente relevante para **GT4Amiga**: el watcher `gt4amiga-watcher` que ejecuta cada snippet vive en un bucle infinito relanzándose a sí mismo (`Run >NIL: Execute GT4A:s/gt4amiga-watcher`) después de cada programa. Si un snippet toma el hardware y no lo libera correctamente, el propio watcher deja de funcionar y ya no se puede ejecutar nada más sin reiniciar el Amiga — literalmente rompería el libro interactivo para el resto de la sesión. Ver la toma y liberación del hardware \"de manera ordenada\" no es solo una buena práctica de programación de demos: es una condición necesaria para que este pipeline siga vivo."
+			},
+			{
+				"__type" : "textSnippet",
+				"children" : {
+					"__type" : "snippets",
+					"items" : [ ]
+				},
+				"createEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"createTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-08T16:23:39.510152+02:00"
+					}
+				},
+				"editEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"editTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-08T16:23:39.510152+02:00"
+					}
+				},
+				"uid" : {
+					"__type" : "uid",
+					"uidString" : "NS2vhOFQQ/GC3XELUGwWfg=="
+				},
+				"paragraphStyle" : {
+					"__type" : "textStyle"
+				},
+				"string" : "## Las cuatro llamadas de `exec.library`\n\n| Función | Offset | Efecto |\n|---------|--------|--------|\n| `Forbid()` | -132 | Impide que el scheduler cambie a otra tarea (multitasking cooperativo suspendido) |\n| `Disable()` | -120 | Enmascara las interrupciones de la CPU (ni siquiera VBlank puede interrumpirnos) |\n| `Permit()` | -138 | Deshace `Forbid()` — el scheduler puede volver a repartir la CPU |\n| `Enable()` | -126 | Deshace `Disable()` — las interrupciones vuelven a llegar |\n\n`Forbid`/`Permit` y `Disable`/`Enable` son mecanismos **independientes y anidables**: cada llamada a `Forbid` debe tener su `Permit`, y cada `Disable` su `Enable`. En este ejemplo los usamos en el orden `Forbid → Disable ... Permit → Enable`, el mismo que usa el ejemplo original.\n\n## El registro DMACON y el truco del bit 15\n\n`DMACON` (`$DFF096`) controla qué canales DMA están activos: bitplanes, copper, blitter, sprites, audio y disco, más un bit maestro (`DMAEN`, bit 9) que los habilita a todos a la vez. Su lectura (`DMACONR`, `$DFF002`) devuelve el estado actual, pero **sin el bit 15** — ese bit solo tiene sentido al escribir, donde selecciona el modo:\n\n- Bit 15 = 1 → los bits marcados con 1 en el resto de la palabra se **activan** (SET)\n- Bit 15 = 0 → los bits marcados con 1 en el resto de la palabra se **desactivan** (CLEAR)\n\nPor eso `take_system` primero **limpia todo** (`move.w #$7fff,DMACON`, bit 15 = 0 → apaga todos los canales) y luego **activa solo lo que quiere** (`move.w #DMASET,DMACON`, con `DMASET = %1000001000000000`, bit 15 = 1 + bit 9 → únicamente el maestro). Y por eso `release_system`, antes de restaurar el valor leído con `DMACONR`, tiene que forzar el bit 15 a 1 con `or.w #$8000,old_dma`: sin ese OR, el valor leído (que nunca trae el bit 15 puesto) se interpretaría como una orden de **apagar** esos canales en vez de **encenderlos**."
+			},
+			{
+				"__type" : "amiga68kSnippet",
+				"children" : {
+					"__type" : "snippets",
+					"items" : [ ]
+				},
+				"createEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"createTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-08T16:24:01.152822+02:00"
+					}
+				},
+				"editEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"editTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-08T16:24:01.152822+02:00"
+					}
+				},
+				"uid" : {
+					"__type" : "uid",
+					"uidString" : "Cp5nmXYvQBuwARSnaWf81g=="
+				},
+				"code" : "; Toma y liberación ordenada del hardware del Amiga\n; Adaptado del capítulo 4 de \"Amiga Assembly Game Programming\" (Stefano Coppi)\n; github.com/stefanocoppi/amiga_game_prog_assembly\n;\n; Self-contained: sin includes externos (NDK), sin registros AGA\n; (FMODE/BPLCON3/BPLCON4 del original, que no existen en el A500/Kickstart\n; 1.3 de este libro), y cicla una paleta de colores en vez de esperar un\n; clic de ratón, para que el resultado sea observable y el programa\n; termine solo en una ejecución desatendida.\n\n        SECTION code,CODE\n\nCUSTOM     equ     $dff000\nDMACONR    equ     $002\nDMACON     equ     $096\nCOLOR00    equ     $180\nDMASET     equ     %1000001000000000\nNUMCOLORS  equ     8\nDELAYCOUNT equ     200000\n\nstart:\n        movem.l d2-d7/a2-a6,-(sp)\n\n        ; --- Mensaje \"antes\": el sistema operativo funciona con normalidad ---\n        bsr     print_before\n\n        ; --- Tomamos el control del hardware ---\n        bsr     take_system\n\n        ; --- Aquí el programa es dueño absoluto del hardware: ni el\n        ;     multitasking ni las interrupciones pueden interrumpirnos.\n        ;     Ciclamos una paleta de 8 colores por COLOR00 (fondo/borde),\n        ;     dejando cada uno visible un instante, para que el cambio se\n        ;     aprecie en pantalla en vez de ser un parpadeo demasiado\n        ;     rápido para percibir. ---\n        lea     colortable,a0\n        moveq   #NUMCOLORS-1,d5\ncolorloop:\n        move.w  (a0)+,COLOR00(a5)\n        bsr     delay\n        dbra    d5,colorloop\n\n        ; --- Liberamos el hardware: el SO recupera el control ---\n        bsr     release_system\n\n        ; --- Mensaje \"después\": si esto se ve, el SO sigue operativo ---\n        bsr     print_after\n\n        movem.l (sp)+,d2-d7/a2-a6\n        moveq   #0,d0\n        rts\n\n;----------------------------------------------------------------\n; Espera ocupada: no podemos usar Delay()/Wait() de dos.library/exec\n; porque las interrupciones están deshabilitadas mientras dura la\n; toma de hardware (Disable()) - solo sirve un bucle de CPU pura.\n; DELAYCOUNT es una cifra aproximada, ajustada a ojo para que cada\n; color se vea con comodidad en un A500 a 7.09 MHz.\n;----------------------------------------------------------------\ndelay:\n        move.l  #DELAYCOUNT,d6\ndelayloop:\n        subq.l  #1,d6\n        bne.s   delayloop\n        rts\n\n;----------------------------------------------------------------\n; Toma control del hardware: multitasking, interrupciones y DMA.\n;----------------------------------------------------------------\ntake_system:\n        move.l  4.w,a6              ; a6 = ExecBase\n        jsr     -132(a6)            ; Exec Forbid() - nadie más recibe la CPU\n        jsr     -120(a6)            ; Exec Disable() - ni siquiera las interrupciones\n\n        lea     CUSTOM,a5           ; a5 = base de los chips personalizados ($DFF000)\n        move.w  DMACONR(a5),old_dma ; guardamos el estado actual de DMA\n        move.w  #$7fff,DMACON(a5)   ; apagamos todos los canales DMA\n        move.w  #DMASET,DMACON(a5)  ; encendemos solo el \"master enable\"\n        rts\n\n;----------------------------------------------------------------\n; Libera el hardware: restaura DMA, interrupciones y multitasking.\n;----------------------------------------------------------------\nrelease_system:\n        or.w    #$8000,old_dma      ; bit 15 = \"SET\" (no \"CLEAR\") al escribir\n        move.w  old_dma,DMACON(a5)  ; restauramos el estado de DMA original\n\n        move.l  4.w,a6\n        jsr     -138(a6)            ; Exec Permit() - reactiva el multitasking\n        jsr     -126(a6)            ; Exec Enable() - reactiva las interrupciones\n        rts\n\n;----------------------------------------------------------------\n; Utilidades de impresión (dos.library). print_before/print_after\n; fijan el mensaje en a3/d4 -registros preservados por cualquier\n; llamada a librería- y print_common hace el trabajo común.\n;----------------------------------------------------------------\nprint_before:\n        lea     msg_before,a3\n        move.l  #len_before,d4\n        bra     print_common\n\nprint_after:\n        lea     msg_after,a3\n        move.l  #len_after,d4\n        ; sigue en print_common\n\nprint_common:\n        move.l  4.w,a6\n        lea     dosname,a1\n        moveq   #0,d0\n        jsr     -552(a6)            ; Exec OpenLibrary(\"dos.library\")\n        move.l  d0,d7\n        beq     print_exit\n\n        move.l  d7,a6\n        jsr     -60(a6)             ; DOS Output()\n        move.l  d0,d1\n\n        move.l  a3,d2               ; d2 = puntero al buffer (desde a3, no a0)\n        move.l  d4,d3               ; d3 = longitud (desde d4, no d3 directo)\n        jsr     -48(a6)             ; DOS Write(d1, d2, d3)\n\n        move.l  4.w,a6\n        move.l  d7,a1\n        jsr     -414(a6)            ; Exec CloseLibrary()\nprint_exit:\n        rts\n\n        SECTION data,DATA\n\ndosname:\n        dc.b    \"dos.library\",0\n        EVEN\n\nmsg_before:\n        dc.b    \"Antes: tomando el control del hardware...\",10\nlen_before EQU  *-msg_before\n\nmsg_after:\n        dc.b    \"Despues: hardware liberado, el SO sigue operativo.\",10\nlen_after  EQU  *-msg_after\n        EVEN\n\ncolortable:\n        dc.w    $000\n        dc.w    $f00\n        dc.w    $0f0\n        dc.w    $00f\n        dc.w    $ff0\n        dc.w    $0ff\n        dc.w    $f0f\n        dc.w    $fff\n\nold_dma:\n        dc.w    0\n"
+			},
+			{
+				"__type" : "textSnippet",
+				"children" : {
+					"__type" : "snippets",
+					"items" : [ ]
+				},
+				"createEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"createTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-08T16:24:21.545948+02:00"
+					}
+				},
+				"editEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"editTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-08T16:24:21.545948+02:00"
+					}
+				},
+				"uid" : {
+					"__type" : "uid",
+					"uidString" : "aknyS322Rh6IBGYJ9nzHnA=="
+				},
+				"paragraphStyle" : {
+					"__type" : "textStyle"
+				},
+				"string" : "## Adaptaciones respecto al ejemplo original\n\nEste ejemplo parte del capítulo 4 de *Amiga Assembly Game Programming* de Stefano Coppi ([github.com/stefanocoppi/amiga_game_prog_assembly](https://github.com/stefanocoppi/amiga_game_prog_assembly)), pero con varios cambios deliberados para encajar en GT4Amiga:\n\n- **Sin dependencia del NDK**: el original usa `include \"hw.i\"`, `include \"exec/exec_lib.i\"`, etc. — el Amiga Native Developer Kit. GT4Amiga sigue la misma convención que la página \"Hola Amiga\": cada snippet es *self-contained*, con los offsets y registros como `EQU` locales. Esto evita añadir soporte de rutas de include al ensamblador (`GT4AmigaAssembler` solo toma un string de código) y mantiene cada snippet copiable y entendible de forma aislada, sin perseguir ficheros externos.\n- **Sin registros AGA**: el original también escribe `FMODE`, `BPLCON3` y `BPLCON4` — registros que solo existen en chipset AGA. El Amiga de este libro es un A500 con Kickstart 1.3 (chipset OCS), así que esos registros no aportan nada aquí y se han omitido.\n- **Ciclo de colores en vez de esperar un clic de ratón**: el original hace `btst #6,CIAAPRA` en bucle hasta que el usuario pulsa el botón izquierdo del ratón. Como este snippet se ejecuta de forma desatendida a través de `GT4FSUAERunner`, se sustituyó por un recorrido de una tabla de 8 colores (`colortable`) escritos en `COLOR00` — termina solo, sin intervención humana.\n\n## Un bucle demasiado rápido para verse\n\nLa primera versión de esta sección era un `dbra` de 2000 iteraciones que escribía en `COLOR00` el propio contador de la cuenta atrás en cada vuelta. Ensamblaba y ejecutaba bien, y de hecho *sí* cambiaba el color de fondo en cada iteración — pero las 2000 iteraciones se ejecutan en un instante (unas pocas decenas de miles de ciclos de CPU), así que el resultado visible era solo un parpadeo, no un cambio apreciable.\n\nEl fix: sustituir el contador por una **tabla de 8 colores** (`colortable`, negro/rojo/verde/azul/amarillo/cian/magenta/blanco) recorrida con `moveq #NUMCOLORS-1,d5` + `dbra`, y entre color y color llamar a una subrutina `delay` que hace una **espera ocupada** (`subq.l #1,d6` + `bne.s` en bucle, `DELAYCOUNT` veces). No se puede usar `Delay()` de dos.library ni `Wait()` de exec — dependen de las interrupciones para despertar al proceso, y `Disable()` las tiene enmascaradas mientras dura la toma del hardware; solo un bucle de CPU pura sirve aquí. `DELAYCOUNT` (200000) es una cifra ajustada a ojo para que cada color se vea con comodidad en un A500 a 7.09 MHz — no es un temporizador preciso, es una demostración.\n\n## El bug de `a0` como registro *scratch*\n\nLa primera versión de este ejemplo pasaba el puntero al mensaje y su longitud en `a0`/`d3`, cargándolos **antes** de llamar a `OpenLibrary()`/`Output()`. El resultado en el Amiga real: caracteres basura en pantalla en vez del texto, sin ningún error ni cuelgue.\n\nLa causa: por convención de AmigaOS, **`d0`, `d1`, `a0` y `a1` son registros de trabajo** que cualquier llamada a una librería (`OpenLibrary`, `Output`, o cualquier otra) puede destruir libremente — solo `d2-d7`/`a2-a6` están garantizados como preservados por la convención de llamada (la misma que obliga a nuestro propio programa a preservarlos frente a quien lo invoca, ver la página \"Hola Amiga\"). Cargar el puntero en `a0` y luego llamar a dos funciones de librería antes de usarlo significaba leer memoria arbitraria en el momento de escribir.\n\nEl fix: usar `a3`/`d4` (preservados) para llevar el puntero y la longitud a través de las llamadas a librería, copiándolos a `d2`/`d3` solo justo antes de `Write()` — el mismo patrón que usa \"Hola Amiga\", donde el `lea` del mensaje ocurre justo antes de `Write`, nunca antes de `OpenLibrary`/`Output`."
+			}
+		]
+	},
+	"createEmail" : {
+		"__type" : "email",
+		"emailString" : "<unknown>"
+	},
+	"createTime" : {
+		"__type" : "time",
+		"time" : {
+			"__type" : "dateAndTime",
+			"dateAndTimeString" : "2026-07-08T16:23:15.614475+02:00"
+		}
+	},
+	"editEmail" : {
+		"__type" : "email",
+		"emailString" : "<unknown>"
+	},
+	"editTime" : {
+		"__type" : "time",
+		"time" : {
+			"__type" : "dateAndTime",
+			"dateAndTimeString" : "2026-07-08T16:23:15.614475+02:00"
+		}
+	},
+	"pageType" : {
+		"__type" : "namedPage",
+		"title" : "Tomar y Liberar el Hardware — Forbid, Disable y DMA"
+	},
+	"uid" : {
+		"__type" : "uuid",
+		"uuid" : "210adfe6-e0f0-44d5-b9ce-9f8773d1958e"
+	}
+}
