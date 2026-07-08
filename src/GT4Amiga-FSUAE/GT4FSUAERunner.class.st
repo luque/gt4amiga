@@ -34,6 +34,12 @@ GT4FSUAERunner class >> withConfiguration: aConfiguration [
 		yourself
 ]
 
+{ #category : #accessing }
+GT4FSUAERunner >> serialSocket [
+	"Public accessor for the live serial TCP socket, used by GT4AmigaMonitorClient."
+	^ serialSocket
+]
+
 { #category : #initialization }
 GT4FSUAERunner >> initialize [
 	configuration := GT4AmigaConfiguration default.
