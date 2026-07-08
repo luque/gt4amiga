@@ -120,7 +120,7 @@ cp amiga/s/* shared/s/
 
 ### 5. Bridge server (live memory / library-call access)
 
-Besides the one-shot assemble → deploy → run pipeline, `GT4Amiga-Bridge` provides `GT4AmigaMonitorClient`: a Pharo-side client for `amiga/s/gt4amiga-monitor.s`, a resident AmigaDOS program that answers a small binary protocol over `SER:` — memory peek/poke and generic AmigaOS library calls — without assembling and launching a new program each time. This is what powers things like live-updating a Workbench palette color from a GToolkit slider.
+Besides the one-shot assemble → deploy → run pipeline, `GT4Amiga-Bridge` provides `GT4AmigaMonitorClient`: a Pharo-side client for `amiga/s/gt4amiga-monitor.s`, a resident AmigaDOS program that answers a small binary protocol over `SER:` — memory peek/poke and generic AmigaOS library calls — without assembling and launching a new program each time. It's deliberately generic (four primitives: read/write memory, a generic library-function call, and the Workbench screen pointer) rather than one convenience method per example; worked examples (e.g. driving a live Workbench interaction from a GToolkit slider) belong as explained Lepiter snippets composing these primitives, not as methods baked into the client.
 
 ```smalltalk
 GT4AmigaMonitorClient default deploy.
@@ -132,7 +132,7 @@ GT4AmigaMonitorClient default readMemoryAt: 16r00DFF180 size: 2. "COLOR00"
 
 The monitor and the one-shot watcher pipeline share the single emulated serial port, so only one can be in use at a time. See the class comment on `GT4AmigaMonitorClient` for the full protocol and the design dead-ends already ruled out (notably: `LockPubScreen()` is Kickstart 2.0+ only and does not exist on the Kickstart 1.3 target this project uses).
 
-> **Known issue, unresolved**: `setColor:red:green:blue:` (which calls `graphics.library/SetRGB4` to change a Workbench palette color live) reliably changes the color on screen but then reliably crashes the emulated Amiga. Two crashes seen so far had *different* Guru Meditation codes (`#00000003` Address Error, then `#00000004` Illegal Instruction) at different addresses, which points to a corrupted return address rather than one deterministic bad instruction — and the same crash reproduces even calling `SetRGB4` from a brand-new one-shot program via the ordinary `GT4FSUAERunner` pipeline, so it isn't specific to the monitor's execution context. A `WaitTOF()`-before-`SetRGB4` fix was tried and is its own dead end: it hangs the monitor forever instead of crashing. See the method comment on `setColor:red:green:blue:` before picking this back up.
+> **Known issue, unresolved**: calling `graphics.library/SetRGB4` (to change a Workbench palette color live) via `callLibrary:lvo:a0:a1:d0:d1:d2:d3:` reliably changes the color on screen but then reliably crashes the emulated Amiga. Two crashes seen so far had *different* Guru Meditation codes (`#00000003` Address Error, then `#00000004` Illegal Instruction) at different addresses, which points to a corrupted return address rather than one deterministic bad instruction — and the same crash reproduces even calling `SetRGB4` from a brand-new one-shot program via the ordinary `GT4FSUAERunner` pipeline, so it isn't specific to the monitor's execution context. A `WaitTOF()`-before-`SetRGB4` fix was tried and is its own dead end: it hangs the monitor forever instead of crashing. See the class comment on `GT4AmigaMonitorClient` before picking this back up.
 
 ## Loading in GToolkit
 
@@ -193,7 +193,7 @@ GT4FSUAERunner default run: result.
 - [x] Auto-detection of vasm, Kickstart ROM and Workbench HDF paths
 - [x] First book pages: assembler primer + AmigaOS Hello World
 - [x] Second book page: taking and releasing hardware control (`Forbid`/`Disable`, DMA)
-- [ ] Bridge server (`GT4AmigaMonitorClient`): live memory/library-call access over SER: — working for memory peek/poke and generic calls, `setColor:` still crashes intermittently (see README §5)
+- [ ] Bridge server (`GT4AmigaMonitorClient`): live memory/library-call access over SER: — working for memory peek/poke and generic calls; a `SetRGB4`-based live color example still crashes (see README §5); no worked examples/book page yet
 - [ ] Syntax highlighting for 68000 assembly in the snippet editor
 - [ ] Bare-metal mode: bootable ADF generation for hardware-direct demos
 - [ ] Real hardware target via [A314](https://github.com/niklasekstrom/a314)

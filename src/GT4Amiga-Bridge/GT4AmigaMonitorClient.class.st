@@ -25,12 +25,15 @@ Protocol (see amigaSource for the full commented 68k source), one command -> one
 
 libIndex for CALL: 0=exec 1=dos.library 2=intuition.library 3=graphics.library (bases opened once at monitor startup).
 
+This client is deliberately kept generic - it exposes only the four raw protocol operations above (readMemoryAt:size:, writeMemoryAt:size:value:, callLibrary:lvo:a0:a1:d0:d1:d2:d3:, workbenchScreenPointer), not one convenience method per example (no setColor:, no moveScreenBy:, etc). Worked examples (which LVO, which registers, why it works or doesn''t) belong as explained snippets in a Lepiter book page, composing these primitives - that is more didactic for a book about programming the Amiga than hiding the details behind named methods here.
+
 Design notes and dead ends, so they are not re-discovered the hard way:
 - The monitor does NOT call Forbid()/Disable(): that would break its own SER: I/O, which depends on interrupts to complete (Read()/Write() via dos.library).
 - LockPubScreen() is Kickstart 2.0/V36+ only - it does not exist in the intuition.library jump table on our Kickstart 1.3 target, and calling its LVO there executes garbage and crashes (Guru #00000003, Address Error). Confirmed via the "(V36)" tag on its official autodoc. Use workbenchScreenPointer (a direct read of IntuitionBase->FirstScreen, offset 60) instead - no locking concept exists yet in 1.3 anyway.
 - A raw poke to a color register (via writeMemoryAt:size:value: on $DFF180/COLOR00) is overwritten by Workbench''s own Copper list within ~20ms (one frame) - it is not a persistent change. Disabling only the Copper''s DMA channel to stop that is WORSE: the Copper is what resets the bitplane DMA pointers every frame, so without it bitplane DMA keeps marching through RAM producing corrupted/changing graphics.
-- graphics.library/SetRGB4(vp,n,r,g,b) is the correct, version-safe (no version tag on its autodoc) way to change a screen color persistently: it patches the matching MOVE instruction already present in the live Copper list. See setColor:red:green:blue: - KNOWN, UNRESOLVED CRASH after changing the color - do not spend more time on this without a new angle, see its method comment.
+- graphics.library/SetRGB4(vp,n,r,g,b) - LVO -288, a0=viewport (workbenchScreenPointer+44, i.e. Screen->ViewPort), d0=colorIndex, d1=r, d2=g, d3=b - is the correct, version-safe (no version tag on its autodoc) way to change a screen color persistently: it patches the matching MOVE instruction already present in the live Copper list. KNOWN, UNRESOLVED CRASH: this reliably changes the color on screen, then reliably crashes the Amiga shortly after. Two crashes observed had DIFFERENT Guru codes (#00000003 Address Error at $00C2E188, then #00000004 Illegal Instruction at $00C32860) - different exception type AND address each time, which points to a corrupted return address / jump to garbage memory (stack imbalance somewhere) rather than one deterministic bad instruction. Ruled out: calling this asynchronously from a background task racing the Copper - the SAME crash reproduces even calling SetRGB4 from a brand-new one-shot program via the ordinary GT4FSUAERunner pipeline, so it is not specific to gt4amiga-monitor''s execution context. Do not spend more time on this without a new angle: look for genuine stack corruption around the call (calling-convention/register mistakes have already been checked carefully), or reconsider MrgCop/SetRGB4 behavior specifics for this exact ROM/FS-UAE combination.
 - graphics.library/WaitTOF() (LVO -270, no version tag, should be safe since 1.0) was tried as a possible fix for the SetRGB4 crash (theory: syncing to vblank before patching the live Copper list). Calling it from gt4amiga-monitor HANGS FOREVER (not a crash - the monitor stops responding to any further command, including previously-reliable ones) and repeatedly pegged the host GT image''s CPU at 100%+ for many minutes. Do not call WaitTOF from this monitor - dead end, not just an unproven idea.
+- intuition.library/MoveScreen(screen,dx,dy) - LVO -162, a0=screen, d0=dx, d1=dy - moves the Workbench screen vertically, not yet tested live. No version tag, but its autodoc notes nonzero dx is only supported from V36 on, so dx must stay 0 on our Kickstart 1.3 target. Also documented as asynchronous and giving "unexpected results" if called too fast in succession - a slider-driven example must pace/throttle updates, not call this on every pixel of drag.
 
 Canonical source for all LVOs/struct offsets used here: amigadev.elowar.com (WebFetch fails on this host - self-signed/expired cert - use `curl -sk` via Bash instead).'
 
@@ -114,33 +117,6 @@ GT4AmigaMonitorClient >> deploy [
 ]
 
 { #category : #'protocol' }
-GT4AmigaMonitorClient >> moveScreenBy: deltaY [
-	"Move the Workbench screen vertically by deltaY pixels (screen
-	 resolution units) via intuition.library MoveScreen(screen,dx,dy) -
-	 LVO -162, a0=screen, d0=dx, d1=dy. dx is always 0: per the official
-	 autodoc, nonzero dx is only supported from V36 (Kickstart 2.0) on -
-	 our Kickstart 1.3 target requires dx=0. MoveScreen is asynchronous
-	 and documented as giving 'unexpected results' if called too fast in
-	 succession - callers (e.g. a slider) must pace/throttle updates,
-	 not call this on every pixel of drag."
-	| screen |
-	screen := self workbenchScreenPointer.
-	screen ifNil: [ ^ nil ].
-	^ self callLibrary: 2 lvo: -162 a0: screen a1: 0 d0: 0 d1: deltaY
-]
-
-{ #category : #'protocol' }
-GT4AmigaMonitorClient >> moveWorkbenchScreenToTop: targetY [
-	"Move the Workbench screen so its TopEdge becomes targetY, by reading
-	 the current position and calling moveScreenBy: with the difference
-	 (MoveScreen takes a relative delta, not an absolute position)."
-	| currentTop |
-	currentTop := self workbenchScreenTop.
-	currentTop ifNil: [ ^ nil ].
-	^ self moveScreenBy: targetY - currentTop
-]
-
-{ #category : #'protocol' }
 GT4AmigaMonitorClient >> quit [
 	"Ask the monitor to close its libraries and SER: and return, ending
 	 the Run'd process cleanly."
@@ -175,38 +151,6 @@ GT4AmigaMonitorClient >> readMemoryAt: anAddress size: aSize [
 	^ self bytesToInt: resp
 ]
 
-{ #category : #'protocol' }
-GT4AmigaMonitorClient >> setColor: colorIndex red: r green: g blue: b [
-	"Change Workbench palette color colorIndex to (r,g,b) (each 0-15) via
-	 graphics.library SetRGB4(viewport,n,r,g,b) - LVO -288, a0=viewport,
-	 d0=n, d1=r, d2=g, d3=b. viewport is workbenchScreenPointer+44
-	 (Screen->ViewPort, an embedded struct - see class comment).
-
-	 KNOWN ISSUE, UNRESOLVED - stop and think before touching this again:
-	 this reliably changes the color on screen, then reliably crashes the
-	 Amiga shortly after. Two crashes observed so far had DIFFERENT Guru
-	 codes (#00000003 Address Error at $00C2E188, then #00000004 Illegal
-	 Instruction at $00C32860) - different exception type AND address each
-	 time, which points to a corrupted return address / jump to garbage
-	 memory (stack imbalance somewhere) rather than one deterministic bad
-	 instruction. Ruled out: calling this asynchronously from a background
-	 task racing the Copper - the SAME crash reproduces even calling
-	 SetRGB4 from a brand-new one-shot program via the ordinary
-	 GT4FSUAERunner pipeline (built and tested while debugging this), so
-	 it is not specific to gt4amiga-monitor's execution context. WaitTOF()
-	 before SetRGB4 was tried as a fix and is a dead end of its own (see
-	 class comment) - do not retry it. Next angle, if picked back up: look
-	 for genuine stack corruption around the call (not a simple
-	 register/calling-convention mistake, those have already been checked
-	 carefully), or reconsider MrgCop/SetRGB4 behavior specifics for this
-	 exact ROM/FS-UAE combination."
-	| screen viewport |
-	screen := self workbenchScreenPointer.
-	screen ifNil: [ ^ nil ].
-	viewport := screen + 44.
-	^ self callLibrary: 3 lvo: -288 a0: viewport a1: 0 d0: colorIndex d1: r d2: g d3: b
-]
-
 { #category : #'private' }
 GT4AmigaMonitorClient >> socket [
 	"Ensure connected and answer the live serial socket, reusing
@@ -228,16 +172,6 @@ GT4AmigaMonitorClient >> workbenchScreenPointer [
 	resp := self readExactly: 4 from: sock.
 	resp size = 4 ifFalse: [ ^ nil ].
 	^ self bytesToLong: resp
-]
-
-{ #category : #'protocol' }
-GT4AmigaMonitorClient >> workbenchScreenTop [
-	"Screen->TopEdge (offset 10, a signed WORD) of the current Workbench
-	 screen - see moveWorkbenchScreenToTop:."
-	| screen |
-	screen := self workbenchScreenPointer.
-	screen ifNil: [ ^ nil ].
-	^ self readMemoryAt: screen + 10 size: 2
 ]
 
 { #category : #'protocol' }
