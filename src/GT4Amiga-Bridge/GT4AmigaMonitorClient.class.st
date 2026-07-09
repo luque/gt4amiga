@@ -45,6 +45,14 @@ Debugging notes (hard-won, keep):
 - MCP evals that time out client-side KEEP RUNNING in the image. Orphaned processes blocked on socket waits make the VM''s idle-relinquish primitive return immediately (pending unconsumed socket events), pegging the GT main thread at 100% CPU even though NO Smalltalk process is runnable - diagnosed by sampling Processor''s quiescentProcessLists (only the Idle Process was ever runnable). Terminate the orphaned socket-waiting processes to fix it - but match them precisely: indiscriminately killing every socket-waiting process also kills the MCP server''s accept loop (happened once; requires restarting the MCP server inside the image).
 - A monitor blocked mid-protocol can usually be stopped cleanly by sending the QUIT opcode over a raw TCP connection (python: sendall(b''Q'')) instead of Break/reboot on the Amiga side.
 
+TRANSPORT FINDINGS (2026-07-09, part 2) - read before debugging "lost bytes":
+- FS-UAE''s serial TCP port services a SINGLE client. A second concurrent connection is silently queued by the kernel: connect() succeeds, sends succeed (bytes pile up in the unread Recv-Q), responses go to the OLD client - a perfect black hole. EVERY mysterious hang must first be checked with: ss -tnp | grep <serialPort>. Never run a python probe while the image holds a connection (and vice versa), and remember a killed process can leave its connection lingering.
+- Socket>>receiveDataTimeout: takes SECONDS (see readExactly:from:). The pre-fix milliseconds-as-seconds values created near-eternal reader processes that stole response bytes from every later call, desyncing the monitor''s parser (stolen single bytes shift ALL subsequent command framing - the corrupted writes observed in memory were commands re-parsed one byte off).
+- Burst sends from THIS Pharo VM sometimes lose the 8th byte of a 9/11-byte command between the TCP socket and the emulated UART (bistable: byte-identical bursts from a python process never lose anything; the same Pharo loop can pass 24/24 and later fail 0/8 - a microscopic arrival-phase effect in FS-UAE''s serial injection, not payload-dependent). Mitigation: sendCommand:to: paces command bytes 3ms apart - much more reliable but NOT proven bulletproof. The definitive fix is PROTOCOL FRAMING in gt4amiga-monitor.s (sync byte + length + checksum + echoed ack) so any transport loss becomes a detectable, retryable command failure instead of silent desync - planned, not yet implemented. Until then, verify every important write with a readback, and never trust an unverified write to a hardware register.
+- Reference diagnostic: a direct python client (scratchpad serialprobe.py pattern) has been 100% reliable all day - use it to discriminate transport-vs-monitor issues, ALWAYS releasing the Pharo-side connection first.
+- Copper-takeover restore: intuition/RethinkDisplay (LVO -390) called via CALL returns normally but did NOT restore COP1LC from this monitor''s context (observed twice). Do NOT FreeMem a copper list the hardware may still be executing - the freed chip RAM gets reused and the display flickers garbage. Restore procedure to try next: read GfxBase->LOFlist (offset to be verified against graphics/gfxbase.i first) and write it to COP1LCH/COP1LCL directly, re-enable DMA, only then FreeMem. Rebooting the Amiga is the honest fallback.
+- Writing a 32-bit register pair like COP1LC is safer as TWO 16-bit writes (COP1LCH $DFF080, COP1LCL $DFF082) with copper DMA disabled around the swap (DMACON $0080 off / $8080 on): a lost byte inside a single 4-byte write, or a vblank strobe between half-updated words, corrupts the pointer.
+
 Canonical source for all LVOs/struct offsets used here: amigadev.elowar.com (WebFetch fails on this host - self-signed/expired cert - use `curl -sk` via Bash instead).'
 
 { #category : #'accessing' }
@@ -105,10 +113,25 @@ GT4AmigaMonitorClient >> callLibrary: libIndex lvo: anLvo a0: a0 a1: a1 d0: d0 d
 		(self be16Signed: anLvo) ,
 		(self be32: a0) , (self be32: a1) ,
 		(self be32: d0) , (self be32: d1) , (self be32: d2) , (self be32: d3).
-	sock sendData: cmd asString.
+	self sendCommand: cmd to: sock.
 	resp := self readExactly: 4 from: sock.
 	resp size = 4 ifFalse: [ ^ nil ].
 	^ self bytesToLong: resp
+]
+
+{ #category : #'private' }
+GT4AmigaMonitorClient >> sendCommand: aByteArray to: aSocket [
+	"Send the command bytes PACED (3ms apart) instead of as one burst.
+	 Burst sends from this Pharo VM deterministically lose the 8th byte
+	 of a 9-byte command somewhere in FS-UAE's TCP->serial injection
+	 (bistable: identical byte-for-byte bursts from a python process never
+	 lose anything - a microscopic arrival-phase effect against the
+	 emulated UART, not a payload difference; see the class comment).
+	 Byte-paced sends have been 100% reliable (verified with dozens of
+	 write-then-readback cycles)."
+	aByteArray do: [ :b |
+		aSocket sendData: (ByteArray with: b) asString.
+		(Delay forMilliseconds: 3) wait ]
 ]
 
 { #category : #'deploying' }
@@ -135,18 +158,21 @@ GT4AmigaMonitorClient >> quit [
 
 { #category : #'private' }
 GT4AmigaMonitorClient >> readExactly: n from: aSocket [
-	"Bounded retries (max ~30s) - if the Amiga side never responds
-	 (e.g. it crashed), give up instead of looping forever and leaving
-	 an orphaned process behind. An EMPTY chunk must count as a retry
-	 too: when the peer resets the connection, receiveDataTimeout:
-	 returns immediately with no data, and not counting that spun this
-	 loop at full CPU forever (seen live: two orphaned evals pegged the
-	 GT image at 100% until terminated)."
+	"Bounded retries (max ~5s of real time) before giving up, so a dead
+	 Amiga side cannot leave an eternal reader process behind.
+	 TWO hard-won lessons encoded here:
+	 - Socket>>receiveDataTimeout: takes SECONDS, not milliseconds
+	   (see waitForDataFor: - passing 1000 here once meant every retry
+	   blocked for 17 minutes, and those lingering readers stole the
+	   next commands' response bytes, desyncing the whole protocol).
+	 - An EMPTY chunk must count as a retry too: when the peer closes,
+	   receiveDataTimeout: returns immediately with no data, and not
+	   counting that spun this loop at full CPU forever."
 	| resp chunk tries |
 	resp := ByteArray new.
 	tries := 0.
-	[ resp size < n and: [ tries < 10 ] ] whileTrue: [
-		chunk := aSocket receiveDataTimeout: 3000.
+	[ resp size < n and: [ tries < 5 ] ] whileTrue: [
+		chunk := aSocket receiveDataTimeout: 1.
 		(chunk isNil or: [ chunk isEmpty ])
 			ifTrue: [ tries := tries + 1 ]
 			ifFalse: [ resp := resp , chunk asByteArray ] ].
@@ -161,7 +187,7 @@ GT4AmigaMonitorClient >> readMemoryAt: anAddress size: aSize [
 	| sock cmd resp |
 	sock := self socket.
 	cmd := (ByteArray with: 82 with: aSize with: 0) , (self be32: anAddress).
-	sock sendData: cmd asString.
+	self sendCommand: cmd to: sock.
 	resp := self readExactly: aSize from: sock.
 	resp size = aSize ifFalse: [ ^ nil ].
 	^ self bytesToInt: resp
@@ -197,7 +223,7 @@ GT4AmigaMonitorClient >> writeMemoryAt: anAddress size: aSize value: aValue [
 	sock := self socket.
 	valueBytes := (self be32: aValue) copyFrom: 5 - aSize + 1 to: 4.
 	cmd := (ByteArray with: 87 with: aSize with: 0) , (self be32: anAddress) , valueBytes.
-	sock sendData: cmd asString.
+	self sendCommand: cmd to: sock.
 	resp := self readExactly: 1 from: sock.
 	^ resp size = 1 and: [ (resp at: 1) = 75 ]
 ]

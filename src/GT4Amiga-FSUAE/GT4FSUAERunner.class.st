@@ -186,9 +186,13 @@ GT4FSUAERunner >> captureOutputWithTimeout: seconds [
 
 { #category : #'serial communication' }
 GT4FSUAERunner >> readAvailableFromSerial [
-	"Non-blocking read of whatever is available on the serial socket."
+	"Non-blocking-ish read of whatever is available on the serial socket.
+	 NOTE: receiveDataTimeout: takes SECONDS (see waitForDataFor:), not
+	 milliseconds - the previous value of 100 here meant a quiet socket
+	 blocked each poll for 100 seconds, far beyond captureOutputWithTimeout:'s
+	 own deadline."
 	| bytes |
-	[ bytes := serialSocket receiveDataTimeout: 100 ]
+	[ bytes := serialSocket receiveDataTimeout: 1 ]
 		on: Error do: [ :e | ^ '' ].
 	^ bytes ifNil: [ '' ] ifNotNil: [ :b | b asString ]
 ]
