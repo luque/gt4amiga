@@ -1,0 +1,360 @@
+{
+	"__schema" : "4.1",
+	"__type" : "page",
+	"children" : {
+		"__type" : "snippets",
+		"items" : [
+			{
+				"__type" : "textSnippet",
+				"children" : {
+					"__type" : "snippets",
+					"items" : [ ]
+				},
+				"createEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"createTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-09T15:08:55.247476+02:00"
+					}
+				},
+				"editEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"editTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-09T15:08:55.247476+02:00"
+					}
+				},
+				"uid" : {
+					"__type" : "uid",
+					"uidString" : "GPvuJYnLQQqklfUEwpwsSw=="
+				},
+				"paragraphStyle" : {
+					"__type" : "textStyle"
+				},
+				"string" : "Hasta ahora cada ejemplo del libro sigue el ciclo ensamblar → desplegar → ejecutar: un programa nuevo por cada prueba. El Bridge Server invierte ese modelo: un único programa residente en el Amiga (gt4amiga-monitor, fuente en amiga/s/gt4amiga-monitor.s) escucha comandos binarios por el puerto serie y nos permite leer y escribir memoria, e invocar cualquier función de las librerías del sistema, en tiempo real desde GToolkit. El Amiga se convierte en un objeto vivo más de la imagen. Para ponerlo en marcha (una vez por sesión de FS-UAE): evaluar GT4AmigaMonitorClient default deploy, y en el Shell del Amiga: Run >NIL: GT4A:incoming/monitor. El monitor y el watcher de ejemplos comparten el único puerto serie emulado, así que mientras el monitor esté activo no se puede usar el botón «Run on FS-UAE» de los snippets — para detener el monitor limpiamente: GT4AmigaMonitorClient default quit."
+			},
+			{
+				"__type" : "textSnippet",
+				"children" : {
+					"__type" : "snippets",
+					"items" : [ ]
+				},
+				"createEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"createTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-09T15:09:09.689037+02:00"
+					}
+				},
+				"editEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"editTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-09T15:09:09.689037+02:00"
+					}
+				},
+				"uid" : {
+					"__type" : "uid",
+					"uidString" : "eFo+AA8PSKy4XgSxngvgEg=="
+				},
+				"paragraphStyle" : {
+					"__type" : "textStyle"
+				},
+				"string" : "El cliente Pharo (GT4AmigaMonitorClient) es deliberadamente genérico: expone solo los cuatro primitivos del protocolo, y los ejemplos se construyen componiéndolos. readMemoryAt:size: y writeMemoryAt:size:value: leen/escriben 1, 2 o 4 bytes en cualquier dirección. workbenchScreenPointer devuelve IntuitionBase->FirstScreen (offset 60 — en Kickstart 1.3 no existe LockPubScreen, que es de la 2.0). Y callLibrary:lvo:a0:a1:d0:d1:d2:d3: invoca cualquier función de librería: libIndex 0=exec, 1=dos, 2=intuition, 3=graphics; el LVO (Library Vector Offset) es el desplazamiento negativo de la función en la tabla de saltos de la librería, y los registros a0/a1/d0-d3 llevan los argumentos según documenta el autodoc oficial de cada función (fuente canónica: amigadev.elowar.com). El valor devuelto es el d0 tras la llamada."
+			},
+			{
+				"__type" : "pharoSnippet",
+				"children" : {
+					"__type" : "snippets",
+					"items" : [ ]
+				},
+				"createEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"createTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-09T15:09:23.195644+02:00"
+					}
+				},
+				"editEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"editTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-09T15:09:23.195644+02:00"
+					}
+				},
+				"uid" : {
+					"__type" : "uid",
+					"uidString" : "1zJJxke4TBKhl2cLa/3Tig=="
+				},
+				"code" : "\"Primer contacto: leer memoria viva del Amiga. La dirección 4 es la única\n fija de todo el sistema: contiene el puntero a ExecBase (exec.library).\"\n| monitor execBase |\nmonitor := GT4AmigaMonitorClient default.\nexecBase := monitor readMemoryAt: 4 size: 4.\n{ 'ExecBase' -> execBase printStringHex.\n  'Pantalla Workbench' -> monitor workbenchScreenPointer printStringHex }"
+			},
+			{
+				"__type" : "textSnippet",
+				"children" : {
+					"__type" : "snippets",
+					"items" : [ ]
+				},
+				"createEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"createTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-09T15:09:41.195963+02:00"
+					}
+				},
+				"editEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"editTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-09T15:09:41.195963+02:00"
+					}
+				},
+				"uid" : {
+					"__type" : "uid",
+					"uidString" : "FTF93/lgSzuTvdKj5OacZQ=="
+				},
+				"paragraphStyle" : {
+					"__type" : "textStyle"
+				},
+				"string" : "Ejemplo: cambiar el color de fondo del Workbench. La tentación es escribir directamente en el registro hardware COLOR00 ($DFF180) con writeMemoryAt:size:value: — pero no funciona: el Copper de Workbench reescribe los registros de color en cada frame (~20 ms) desde su propia lista de instrucciones, y pisa nuestro valor casi al instante. La forma correcta es pedírselo al sistema: graphics.library/SetRGB4(viewport, n, r, g, b) localiza y parchea la instrucción correspondiente dentro de la lista del Copper, así el cambio persiste. Su autodoc dice: SetRGB4 — LVO -288, a0=ViewPort, d0=índice de color, d1/d2/d3=rojo/verde/azul (0-15). El ViewPort del Workbench está dentro de su struct Screen, en el offset 44. El azul estándar del Workbench 1.3 es (0, 5, 10)."
+			},
+			{
+				"__type" : "pharoSnippet",
+				"children" : {
+					"__type" : "snippets",
+					"items" : [ ]
+				},
+				"createEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"createTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-09T15:09:52.494141+02:00"
+					}
+				},
+				"editEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"editTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-09T15:09:52.494141+02:00"
+					}
+				},
+				"uid" : {
+					"__type" : "uid",
+					"uidString" : "b1vI0vYnRL2OXh1um6uT4Q=="
+				},
+				"code" : "\"Fondo del Workbench a rojo — mira la ventana de FS-UAE al evaluar esto.\"\n| monitor viewport |\nmonitor := GT4AmigaMonitorClient default.\nviewport := monitor workbenchScreenPointer + 44.\nmonitor callLibrary: 3 lvo: -288 a0: viewport a1: 0 d0: 0 d1: 15 d2: 0 d3: 0"
+			},
+			{
+				"__type" : "pharoSnippet",
+				"children" : {
+					"__type" : "snippets",
+					"items" : [ ]
+				},
+				"createEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"createTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-09T15:10:01.586205+02:00"
+					}
+				},
+				"editEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"editTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-09T15:10:01.586205+02:00"
+					}
+				},
+				"uid" : {
+					"__type" : "uid",
+					"uidString" : "iKZt9t7DRbe9PVN4NYXHcA=="
+				},
+				"code" : "\"Restaurar el azul estándar del Workbench 1.3: (r,g,b) = (0,5,10).\"\n| monitor viewport |\nmonitor := GT4AmigaMonitorClient default.\nviewport := monitor workbenchScreenPointer + 44.\nmonitor callLibrary: 3 lvo: -288 a0: viewport a1: 0 d0: 0 d1: 0 d2: 5 d3: 10"
+			},
+			{
+				"__type" : "textSnippet",
+				"children" : {
+					"__type" : "snippets",
+					"items" : [ ]
+				},
+				"createEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"createTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-09T15:10:17.625619+02:00"
+					}
+				},
+				"editEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"editTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-09T15:10:17.625619+02:00"
+					}
+				},
+				"uid" : {
+					"__type" : "uid",
+					"uidString" : "ZrXHATPmQIGMrkZmzbfRXA=="
+				},
+				"paragraphStyle" : {
+					"__type" : "textStyle"
+				},
+				"string" : "Y ahora cerremos el círculo de feedback: un slider en GToolkit que controla el color de fondo del Amiga en tiempo real mientras lo arrastras. No hace falta ningún widget especial — construimos el slider con dos BlElement de Bloc (una barra y un pulgar) y dos manejadores de eventos. La posición horizontal (0..1) se mapea a un degradado del azul del Workbench (0,5,10) al rojo puro (15,0,0), y solo se envía el comando por el puerto serie cuando el nivel entero (0..15) cambia — arrastrar el ratón genera muchos más eventos que niveles distintos, y este pequeño filtro evita inundar el enlace. Al evaluar el snippet, el inspector muestra el slider: arrástralo y observa el fondo del Amiga cambiar al momento."
+			},
+			{
+				"__type" : "pharoSnippet",
+				"children" : {
+					"__type" : "snippets",
+					"items" : [ ]
+				},
+				"createEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"createTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-09T15:10:36.208617+02:00"
+					}
+				},
+				"editEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"editTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-09T15:10:36.208617+02:00"
+					}
+				},
+				"uid" : {
+					"__type" : "uid",
+					"uidString" : "GagvNm6FQ/+jrKnxxRIiMg=="
+				},
+				"code" : "\"Un slider vivo: arrastra el pulgar y el fondo del Workbench\n recorre el degradado azul -> rojo en tiempo real.\"\n| monitor viewport lastLevel apply moveThumb handler barWidth bar thumb |\nmonitor := GT4AmigaMonitorClient default.\nviewport := monitor workbenchScreenPointer + 44.\nbarWidth := 360.\nlastLevel := -1.\n\n\"posición 0..1 -> nivel 0..15 -> SetRGB4, solo si el nivel cambió\"\napply := [ :v | | t |\n\tt := (((v max: 0) min: 1) * 15) rounded.\n\tt = lastLevel ifFalse: [\n\t\tlastLevel := t.\n\t\tmonitor\n\t\t\tcallLibrary: 3 lvo: -288\n\t\t\ta0: viewport a1: 0\n\t\t\td0: 0\n\t\t\td1: t\n\t\t\td2: 5 - (5 * t // 15)\n\t\t\td3: 10 - (10 * t // 15) ] ].\n\nthumb := BlElement new\n\tsize: 22 @ 22;\n\tgeometry: BlCircleGeometry new;\n\tbackground: Color white;\n\tborder: (BlBorder paint: Color gray width: 1);\n\tpreventMouseEvents;\n\tyourself.\n\nbar := BlElement new\n\tsize: barWidth @ 22;\n\tgeometry: (BlRoundedRectangleGeometry cornerRadius: 11);\n\tbackground: (Color r: 0.75 g: 0.78 b: 0.85);\n\taddChild: thumb;\n\tyourself.\n\nmoveThumb := [ :v | thumb relocate: ((((v max: 0) min: 1) * (barWidth - 22)) @ 0) ].\nmoveThumb value: 0.\n\nhandler := [ :evt | | v |\n\tv := (evt localPosition x - 11) / (barWidth - 22).\n\tmoveThumb value: v.\n\tapply value: v ].\nbar addEventHandlerOn: BlMouseDownEvent do: handler.\nbar addEventHandlerOn: BlDragEvent do: handler.\nbar"
+			},
+			{
+				"__type" : "textSnippet",
+				"children" : {
+					"__type" : "snippets",
+					"items" : [ ]
+				},
+				"createEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"createTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-09T15:10:50.572051+02:00"
+					}
+				},
+				"editEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"editTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-09T15:10:50.572051+02:00"
+					}
+				},
+				"uid" : {
+					"__type" : "uid",
+					"uidString" : "WYr1m8p9QUiS8cyHZ8aGpQ=="
+				},
+				"paragraphStyle" : {
+					"__type" : "textStyle"
+				},
+				"string" : "Notas para adaptar estos ejemplos. Cualquier función de librería es invocable de la misma manera: busca su autodoc en amigadev.elowar.com, anota el LVO y qué registro lleva cada argumento, y comprueba en la línea NAME que la función existe en tu Kickstart (una marca como «(V36)» significa Kickstart 2.0+ — no existe en el 1.3 de este libro). Otro ejemplo verificado con el mismo patrón: intuition.library/MoveScreen (LVO -162, a0=pantalla, d0=0 obligatorio pre-V36, d1=desplazamiento vertical) — mueve la pantalla del Workbench. La historia completa de cómo se depuró el monitor (tres bugs de higiene de registros del 68000: mutar a6 antes del jsr, move.b sobre un registro sin limpiar, y cargar a0 antes de una llamada que lo destruye) está en el comentario de la clase GT4AmigaMonitorClient — es una lección de convenciones de llamada tan valiosa como cualquier capítulo."
+			}
+		]
+	},
+	"createEmail" : {
+		"__type" : "email",
+		"emailString" : "<unknown>"
+	},
+	"createTime" : {
+		"__type" : "time",
+		"time" : {
+			"__type" : "dateAndTime",
+			"dateAndTimeString" : "2026-07-09T15:08:43.761668+02:00"
+		}
+	},
+	"editEmail" : {
+		"__type" : "email",
+		"emailString" : "<unknown>"
+	},
+	"editTime" : {
+		"__type" : "time",
+		"time" : {
+			"__type" : "dateAndTime",
+			"dateAndTimeString" : "2026-07-09T15:08:43.761668+02:00"
+		}
+	},
+	"pageType" : {
+		"__type" : "namedPage",
+		"title" : "El Bridge Server — Controlar el Amiga en Vivo"
+	},
+	"uid" : {
+		"__type" : "uuid",
+		"uuid" : "516f6de4-3c5c-4199-b4fa-7a5d289534a1"
+	}
+}

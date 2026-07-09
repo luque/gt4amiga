@@ -132,7 +132,7 @@ GT4AmigaMonitorClient default readMemoryAt: 16r00DFF180 size: 2. "COLOR00"
 
 The monitor and the one-shot watcher pipeline share the single emulated serial port, so only one can be in use at a time. See the class comment on `GT4AmigaMonitorClient` for the full protocol and the design dead-ends already ruled out (notably: `LockPubScreen()` is Kickstart 2.0+ only and does not exist on the Kickstart 1.3 target this project uses).
 
-> **Known issue, paused**: `readMemoryAt:size:`/`writeMemoryAt:size:value:`/`workbenchScreenPointer` are solid — used repeatedly all session with zero crashes. But `callLibrary:lvo:a0:a1:d0:d1:d2:d3:` into **`intuition.library`/`graphics.library`** specifically has crashed the emulated Amiga every time it's been tried (`graphics.library/SetRGB4`, then `intuition.library/MoveScreen`), each with a *different* Guru Meditation code but all landing in the same narrow memory region — pointing at something systemic to calling into those two libraries this way, not a bug in one specific function. Calls into `exec`/`dos.library` (used constantly, including by the monitor's own startup sequence) have never shown this. Paused until this is root-caused — see the class comment on `GT4AmigaMonitorClient` for the full history before picking it back up. In the meantime, book examples for the Bridge Server should stick to the read/write memory primitives.
+> **Resolved (2026-07-09)**: an earlier version of this section documented a "systemic crash" when `callLibrary:lvo:...` targeted `intuition.library`/`graphics.library`. Root-caused and fixed — it was three 68k register-hygiene bugs in `gt4amiga-monitor.s` (mutating `a6` before the `jsr` instead of using indexed addressing; `move.b` into an uncleared `d4` producing gigantic byte counts; loading `a0` before a `dos.library/Read()` call that clobbers it). All four primitives are now verified end-to-end, including `MoveScreen` and `SetRGB4` calls and a write-then-readback memory test. The full post-mortem — including the Python-over-TCP probe technique that isolated the bugs in minutes after hours of in-image debugging — is in the class comment on `GT4AmigaMonitorClient`.
 
 ## Loading in GToolkit
 
@@ -162,6 +162,7 @@ The book pages will appear in the Lepiter browser.
 | **El Ensamblador — Primeros Pasos** | How the assembler works: three progressive examples from a minimal `rts`-only program to arithmetic and data-section access |
 | **Hola Amiga — Primer Programa 68000** | AmigaOS library calling convention, `dos.library`, and a fully annotated Hello World in 68000 assembly |
 | **Tomar y Liberar el Hardware — Forbid, Disable y DMA** | Taking exclusive control of Amiga hardware (`Forbid`/`Disable`, DMA takeover) and releasing it cleanly so the OS survives, adapted from *Amiga Assembly Game Programming* chapter 4 |
+| **El Bridge Server — Controlar el Amiga en Vivo** | Live peek/poke and generic library calls over the serial bridge: reading `ExecBase`, changing the Workbench background color via `SetRGB4`, and a GToolkit slider driving the color in real time |
 
 ## Quick start (Playground)
 
@@ -193,7 +194,9 @@ GT4FSUAERunner default run: result.
 - [x] Auto-detection of vasm, Kickstart ROM and Workbench HDF paths
 - [x] First book pages: assembler primer + AmigaOS Hello World
 - [x] Second book page: taking and releasing hardware control (`Forbid`/`Disable`, DMA)
-- [ ] Bridge server (`GT4AmigaMonitorClient`): live memory/library-call access over SER: — working for memory peek/poke and generic calls; a `SetRGB4`-based live color example still crashes (see README §5); no worked examples/book page yet
+- [x] Bridge server (`GT4AmigaMonitorClient`): live memory/library-call access over SER: — all four primitives verified end-to-end, including `intuition.library`/`graphics.library` calls (`MoveScreen`, `SetRGB4`)
+- [x] Bridge server book page ("El Bridge Server — Controlar el Amiga en Vivo"): live reads, `SetRGB4` color change, GToolkit slider driving the background color in real time
+- [ ] More bridge server examples (e.g. a slider driving a live Copper split line)
 - [ ] Syntax highlighting for 68000 assembly in the snippet editor
 - [ ] Bare-metal mode: bootable ADF generation for hardware-direct demos
 - [ ] Real hardware target via [A314](https://github.com/niklasekstrom/a314)
