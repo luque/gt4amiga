@@ -163,6 +163,7 @@ The book pages will appear in the Lepiter browser.
 | **Hola Amiga — Primer Programa 68000** | AmigaOS library calling convention, `dos.library`, and a fully annotated Hello World in 68000 assembly |
 | **Tomar y Liberar el Hardware — Forbid, Disable y DMA** | Taking exclusive control of Amiga hardware (`Forbid`/`Disable`, DMA takeover) and releasing it cleanly so the OS survives, adapted from *Amiga Assembly Game Programming* chapter 4 |
 | **El Bridge Server — Controlar el Amiga en Vivo** | Live peek/poke and generic library calls over the serial bridge: reading `ExecBase`, changing the Workbench background color via `SetRGB4`, and a GToolkit slider driving the color in real time |
+| **El Copper — Un Split de Color en Vivo** | Building a minimal Copper list word-by-word in live chip RAM (MOVE/WAIT encoding from the Hardware Reference Manual), installing it safely, and moving the color-split line in real time from a GToolkit slider |
 
 ## Quick start (Playground)
 
@@ -196,7 +197,9 @@ GT4FSUAERunner default run: result.
 - [x] Second book page: taking and releasing hardware control (`Forbid`/`Disable`, DMA)
 - [x] Bridge server (`GT4AmigaMonitorClient`): live memory/library-call access over SER: — all four primitives verified end-to-end, including `intuition.library`/`graphics.library` calls (`MoveScreen`, `SetRGB4`)
 - [x] Bridge server book page ("El Bridge Server — Controlar el Amiga en Vivo"): live reads, `SetRGB4` color change, GToolkit slider driving the background color in real time
-- [ ] More bridge server examples (e.g. a slider driving a live Copper split line)
+- [x] Copper book page ("El Copper — Un Split de Color en Vivo"): hand-built Copper list in live chip RAM, slider moving the split line — protocol design validated end-to-end; see the transport caveat in the page and in `GT4AmigaMonitorClient`'s class comment
+- [ ] Frame the monitor protocol (sync byte + length + checksum) so serial byte loss becomes a detectable, retryable error — prerequisite for making the copper examples bulletproof from Pharo
+- [ ] Software restore after a Copper takeover (`GfxBase->LOFlist` → `COP1LC`) instead of rebooting
 - [ ] Syntax highlighting for 68000 assembly in the snippet editor
 - [ ] Bare-metal mode: bootable ADF generation for hardware-direct demos
 - [ ] Real hardware target via [A314](https://github.com/niklasekstrom/a314)

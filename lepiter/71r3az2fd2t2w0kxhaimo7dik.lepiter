@@ -188,6 +188,43 @@
 					"__type" : "textStyle"
 				},
 				"string" : "[[El Bridge Server — Controlar el Amiga en Vivo]]"
+			},
+			{
+				"__type" : "textSnippet",
+				"children" : {
+					"__type" : "snippets",
+					"items" : [ ]
+				},
+				"createEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"createTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-09T18:59:00.283223+02:00"
+					}
+				},
+				"editEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"editTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-09T18:59:00.283223+02:00"
+					}
+				},
+				"uid" : {
+					"__type" : "uid",
+					"uidString" : "GJgeBCvGRAmM1oRCVSX2OQ=="
+				},
+				"paragraphStyle" : {
+					"__type" : "textStyle"
+				},
+				"string" : "[[El Copper — Un Split de Color en Vivo]]"
 			}
 		]
 	},

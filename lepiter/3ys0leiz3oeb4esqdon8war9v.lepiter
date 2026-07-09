@@ -1,0 +1,360 @@
+{
+	"__schema" : "4.1",
+	"__type" : "page",
+	"children" : {
+		"__type" : "snippets",
+		"items" : [
+			{
+				"__type" : "textSnippet",
+				"children" : {
+					"__type" : "snippets",
+					"items" : [ ]
+				},
+				"createEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"createTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-09T18:56:50.582876+02:00"
+					}
+				},
+				"editEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"editTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-09T18:56:50.582876+02:00"
+					}
+				},
+				"uid" : {
+					"__type" : "uid",
+					"uidString" : "gylltY+pQ5mDhcudx4pICQ=="
+				},
+				"paragraphStyle" : {
+					"__type" : "textStyle"
+				},
+				"string" : "El Copper (co-procesador) es el chip más característico del Amiga: un procesador diminuto que ejecuta su propia lista de instrucciones en chip RAM, sincronizado con el haz de vídeo. Solo entiende tres instrucciones — MOVE (escribe un valor en un registro hardware), WAIT (espera a que el haz alcance una posición de pantalla) y SKIP — pero con ellas se construyen los efectos más famosos de la demoscene: cambiar la paleta a mitad de frame, splits de pantalla, copper bars. En este capítulo construimos, palabra a palabra y en chip RAM del Amiga vivo, una lista de Copper mínima que parte la pantalla en dos colores, y luego movemos la línea del split en tiempo real desde GToolkit — primero con expresiones, después con un slider. Requiere el monitor del Bridge Server corriendo ([[El Bridge Server — Controlar el Amiga en Vivo]])."
+			},
+			{
+				"__type" : "textSnippet",
+				"children" : {
+					"__type" : "snippets",
+					"items" : [ ]
+				},
+				"createEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"createTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-09T18:57:06.592279+02:00"
+					}
+				},
+				"editEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"editTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-09T18:57:06.592279+02:00"
+					}
+				},
+				"uid" : {
+					"__type" : "uid",
+					"uidString" : "IBYba5CjQkSfpNweddrkAw=="
+				},
+				"paragraphStyle" : {
+					"__type" : "textStyle"
+				},
+				"string" : "Codificación de las instrucciones (verificada contra el Amiga Hardware Reference Manual): MOVE ocupa dos words — la primera es el offset del registro destino dentro de $DFF000 (COLOR00 = $0180) con el bit 0 a 0, la segunda es el dato. WAIT también ocupa dos words — la primera lleva la línea vertical en los bits 15-8 y el bit 0 a 1 (con posición horizontal 0: word = (línea<<8) | 1), la segunda es la máscara de comparación ($FF00 = comparar solo la línea, ignorar posición horizontal). El fin de lista es la espera imposible $FFFF,$FFFE. Nuestra lista completa son 8 words: MOVE COLOR00,azul · WAIT línea N · MOVE COLOR00,naranja · fin. El Copper la reejecuta desde el principio en cada frame (el hardware recarga su contador de programa desde el registro COP1LC en cada blanking vertical), así que basta con reescribir UNA word (la del WAIT) para que la línea del split se mueva en el siguiente frame."
+			},
+			{
+				"__type" : "pharoSnippet",
+				"children" : {
+					"__type" : "snippets",
+					"items" : [ ]
+				},
+				"createEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"createTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-09T18:57:22.861129+02:00"
+					}
+				},
+				"editEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"editTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-09T18:57:22.861129+02:00"
+					}
+				},
+				"uid" : {
+					"__type" : "uid",
+					"uidString" : "Ad4C3YekQsuWn6AuqIHd6Q=="
+				},
+				"code" : "\"Paso 1: reservar 32 bytes de CHIP RAM (el Copper solo ve chip RAM) via\n exec.library/AllocMem (LVO -198, d0=bytes, d1=flags; MEMF_CHIP|MEMF_CLEAR\n = $10002), escribir las 8 words de la lista, y VERIFICAR por readback\n antes de instalar nada: jamás apuntes hardware a memoria sin verificar.\"\n| monitor clist words readback |\nmonitor := GT4AmigaMonitorClient default.\nclist := monitor callLibrary: 0 lvo: -198 a0: 0 a1: 0 d0: 32 d1: 16r10002 d2: 0 d3: 0.\nSmalltalk at: #GT4ACopperList put: clist.\nwords := {\n\t16r0180. 16r005A.                \"MOVE COLOR00, azul WB (0,5,10)\"\n\t(130 bitShift: 8) + 1. 16rFF00.  \"WAIT línea 130\"\n\t16r0180. 16r0F80.                \"MOVE COLOR00, naranja (15,8,0)\"\n\t16rFFFF. 16rFFFE }.              \"fin de lista\"\nwords doWithIndex: [ :w :i |\n\tmonitor writeMemoryAt: clist + (i - 1 * 2) size: 2 value: w ].\nreadback := (1 to: 8) collect: [ :i |\n\tmonitor readMemoryAt: clist + (i - 1 * 2) size: 2 ].\nreadback = words\n\tifTrue: [ 'lista verificada en ' , (clist printStringHex) ]\n\tifFalse: [ 'VERIFICACIÓN FALLIDA — repite este snippet, NO instales: ' , readback printString ]"
+			},
+			{
+				"__type" : "textSnippet",
+				"children" : {
+					"__type" : "snippets",
+					"items" : [ ]
+				},
+				"createEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"createTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-09T18:57:35.65841+02:00"
+					}
+				},
+				"editEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"editTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-09T18:57:35.65841+02:00"
+					}
+				},
+				"uid" : {
+					"__type" : "uid",
+					"uidString" : "nU+/TAcVTzS9gJLShX/4Jg=="
+				},
+				"paragraphStyle" : {
+					"__type" : "textStyle"
+				},
+				"string" : "Paso 2, la instalación — con dos precauciones aprendidas a base de pantallas azules. Primera: COP1LC es un par de registros de 16 bits (COP1LCH $DFF080 / COP1LCL $DFF082); lo escribimos como dos words separadas y con el DMA del Copper apagado durante el cambio, porque si el blanking vertical llega con el puntero a medio actualizar, el Copper arranca en una dirección corrupta. Segunda: apagamos el DMA de bitplanes (bit BPLEN de DMACON, $DFF096 — escribir con bit 15 a 0 borra bits, con bit 15 a 1 los activa) para que la pantalla muestre limpiamente los colores del Copper; el Workbench sigue vivo debajo, solo que invisible. Tras este snippet la pantalla debe partirse: azul arriba, naranja abajo, frontera en la línea 130. El puntero del ratón desaparece también (sus punteros de sprite los reponía la lista del sistema)."
+			},
+			{
+				"__type" : "pharoSnippet",
+				"children" : {
+					"__type" : "snippets",
+					"items" : [ ]
+				},
+				"createEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"createTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-09T18:57:49.55004+02:00"
+					}
+				},
+				"editEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"editTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-09T18:57:49.55004+02:00"
+					}
+				},
+				"uid" : {
+					"__type" : "uid",
+					"uidString" : "LG+OdGwnSAuj7NS+viRp7w=="
+				},
+				"code" : "\"Paso 2: instalar la lista. BPLEN off, COPEN off, COP1LCH/L, COPEN on.\"\n| monitor clist |\nmonitor := GT4AmigaMonitorClient default.\nclist := Smalltalk at: #GT4ACopperList.\n{ 16rDFF096 -> 16r0100.                      \"BPLEN off (bit15=0 borra)\"\n  16rDFF096 -> 16r0080.                      \"COPEN off\"\n  16rDFF080 -> (clist bitShift: -16).        \"COP1LCH: word alta\"\n  16rDFF082 -> (clist bitAnd: 16rFFFF).      \"COP1LCL: word baja\"\n  16rDFF096 -> 16r8080 }                     \"COPEN on (bit15=1 activa)\"\n\tdo: [ :pair |\n\t\t(monitor writeMemoryAt: pair key size: 2 value: pair value)\n\t\t\tifFalse: [ ^ 'ack perdido escribiendo ' , pair key printStringHex , ' — reevalúa este snippet' ] ].\n'copper list instalada — mira la pantalla del Amiga'"
+			},
+			{
+				"__type" : "pharoSnippet",
+				"children" : {
+					"__type" : "snippets",
+					"items" : [ ]
+				},
+				"createEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"createTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-09T18:58:02.799707+02:00"
+					}
+				},
+				"editEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"editTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-09T18:58:02.799707+02:00"
+					}
+				},
+				"uid" : {
+					"__type" : "uid",
+					"uidString" : "DCM61pCEQ6q7LqjI7tnmFg=="
+				},
+				"code" : "\"Mover la línea del split: reescribir UNA word (el WAIT, en clist+4).\n El cambio se ve en el siguiente frame (~20ms). Prueba otros valores 40-250.\"\n| monitor clist |\nmonitor := GT4AmigaMonitorClient default.\nclist := Smalltalk at: #GT4ACopperList.\nmonitor writeMemoryAt: clist + 4 size: 2 value: (200 bitShift: 8) + 1"
+			},
+			{
+				"__type" : "pharoSnippet",
+				"children" : {
+					"__type" : "snippets",
+					"items" : [ ]
+				},
+				"createEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"createTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-09T18:58:21.906864+02:00"
+					}
+				},
+				"editEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"editTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-09T18:58:21.906864+02:00"
+					}
+				},
+				"uid" : {
+					"__type" : "uid",
+					"uidString" : "z6N8pskgQAC6T5JRXKU22g=="
+				},
+				"code" : "\"El círculo completo: un slider en GToolkit que mueve la línea del split\n en tiempo real. Mismo patrón que el slider de color del Bridge Server:\n dos BlElement y un mapeo posición -> línea (60..220), enviando solo\n cuando la línea entera cambia.\"\n| monitor clist lastLine apply moveThumb handler barWidth bar thumb |\nmonitor := GT4AmigaMonitorClient default.\nclist := Smalltalk at: #GT4ACopperList.\nbarWidth := 360.\nlastLine := -1.\n\napply := [ :v | | line |\n\tline := (60 + (((v max: 0) min: 1) * 160)) rounded.\n\tline = lastLine ifFalse: [\n\t\tlastLine := line.\n\t\tmonitor writeMemoryAt: clist + 4 size: 2 value: (line bitShift: 8) + 1 ] ].\n\nthumb := BlElement new\n\tsize: 22 @ 22;\n\tgeometry: BlCircleGeometry new;\n\tbackground: Color white;\n\tborder: (BlBorder paint: Color gray width: 1);\n\tpreventMouseEvents;\n\tyourself.\n\nbar := BlElement new\n\tsize: barWidth @ 22;\n\tgeometry: (BlRoundedRectangleGeometry cornerRadius: 11);\n\tbackground: (Color r: 0.75 g: 0.78 b: 0.85);\n\taddChild: thumb;\n\tyourself.\n\nmoveThumb := [ :v | thumb relocate: ((((v max: 0) min: 1) * (barWidth - 22)) @ 0) ].\nmoveThumb value: 0.4.\n\nhandler := [ :evt | | v |\n\tv := (evt localPosition x - 11) / (barWidth - 22).\n\tmoveThumb value: v.\n\tapply value: v ].\nbar addEventHandlerOn: BlMouseDownEvent do: handler.\nbar addEventHandlerOn: BlDragEvent do: handler.\nbar"
+			},
+			{
+				"__type" : "textSnippet",
+				"children" : {
+					"__type" : "snippets",
+					"items" : [ ]
+				},
+				"createEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"createTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-09T18:58:34.847119+02:00"
+					}
+				},
+				"editEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"editTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-09T18:58:34.847119+02:00"
+					}
+				},
+				"uid" : {
+					"__type" : "uid",
+					"uidString" : "thwmDkkOQo2RTyIu5fJy9g=="
+				},
+				"paragraphStyle" : {
+					"__type" : "textStyle"
+				},
+				"string" : "Para recuperar el Workbench: hoy por hoy, la vía fiable es reiniciar el Amiga (Ctrl-Amiga-Amiga). La restauración por software está pendiente de resolver: intuition.library/RethinkDisplay (LVO -390) invocada a través del monitor retorna sin error pero no recarga COP1LC (observado dos veces); el plan para la próxima iteración es leer la lista del sistema desde GfxBase->LOFlist (offset por verificar contra graphics/gfxbase.i) y escribirla en COP1LCH/L directamente, reactivar BPLEN con DMACON=$8100, y solo entonces liberar la chip RAM con exec/FreeMem (LVO -210, a1=dirección, d0=tamaño). Regla aprendida por las malas: nunca liberes una copper list que el hardware pueda estar ejecutando — el sistema reutiliza esa memoria al instante y la pantalla se convierte en un parpadeo de basura."
+			},
+			{
+				"__type" : "textSnippet",
+				"children" : {
+					"__type" : "snippets",
+					"items" : [ ]
+				},
+				"createEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"createTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-09T18:58:50.114473+02:00"
+					}
+				},
+				"editEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"editTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-09T18:58:50.114473+02:00"
+					}
+				},
+				"uid" : {
+					"__type" : "uid",
+					"uidString" : "YFvO1+7kQ9OtEVMM3AvcMg=="
+				},
+				"paragraphStyle" : {
+					"__type" : "textStyle"
+				},
+				"string" : "Nota de fiabilidad (estado 2026-07-09): el diseño de este ejemplo está validado extremo a extremo (lista verificada por readback, instalación segura en dos words con el Copper parado, split visible, línea moviéndose en vivo). Sin embargo el transporte serie Pharo→FS-UAE tiene una anomalía conocida: ráfagas de 9+ bytes pueden perder su octavo byte de forma intermitente (nunca ocurre desde un cliente Python equivalente — es un efecto de fase contra el UART emulado, no del protocolo). El cliente lo mitiga espaciando los bytes 3ms (sendCommand:to:), y cada snippet de esta página verifica sus escrituras (readback o ack) precisamente por esto. El arreglo definitivo — enmarcar el protocolo del monitor con byte de sincronía, longitud y checksum para que una pérdida sea un error detectable y reintentable — está planificado; los detalles completos de la investigación están en el comentario de la clase GT4AmigaMonitorClient."
+			}
+		]
+	},
+	"createEmail" : {
+		"__type" : "email",
+		"emailString" : "<unknown>"
+	},
+	"createTime" : {
+		"__type" : "time",
+		"time" : {
+			"__type" : "dateAndTime",
+			"dateAndTimeString" : "2026-07-09T18:56:36.164979+02:00"
+		}
+	},
+	"editEmail" : {
+		"__type" : "email",
+		"emailString" : "<unknown>"
+	},
+	"editTime" : {
+		"__type" : "time",
+		"time" : {
+			"__type" : "dateAndTime",
+			"dateAndTimeString" : "2026-07-09T18:56:36.164979+02:00"
+		}
+	},
+	"pageType" : {
+		"__type" : "namedPage",
+		"title" : "El Copper — Un Split de Color en Vivo"
+	},
+	"uid" : {
+		"__type" : "uuid",
+		"uuid" : "935846a6-d3eb-4b50-9938-9c0c7ad6fd42"
+	}
+}
