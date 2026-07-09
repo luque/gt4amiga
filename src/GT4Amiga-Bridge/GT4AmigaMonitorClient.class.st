@@ -27,18 +27,23 @@ libIndex for CALL: 0=exec 1=dos.library 2=intuition.library 3=graphics.library (
 
 This client is deliberately kept generic - it exposes only the four raw protocol operations above (readMemoryAt:size:, writeMemoryAt:size:value:, callLibrary:lvo:a0:a1:d0:d1:d2:d3:, workbenchScreenPointer), not one convenience method per example (no setColor:, no moveScreenBy:, etc). Worked examples (which LVO, which registers, why it works or doesn''t) belong as explained snippets in a Lepiter book page, composing these primitives - that is more didactic for a book about programming the Amiga than hiding the details behind named methods here.
 
-STATUS (2026-07-09): READ/WRITE/GET SCREEN are solid - used many times this session with zero crashes. CALL into intuition.library/graphics.library is UNRELIABLE - PAUSED, do not build book examples on it yet. CALL into exec/dos.library has not shown this problem (OpenLibrary/CloseLibrary/Open/Read/Write all used successfully at monitor startup and via the one-shot pipeline throughout this whole project).
+STATUS (2026-07-09): ALL FOUR primitives verified working end-to-end - including CALL into intuition.library (MoveScreen, screen visibly moved and restored) and graphics.library (SetRGB4, background red and back), and a write-then-readback memory test. The "systemic crash" previously documented here is RESOLVED: it was three distinct 68k register-hygiene bugs in gt4amiga-monitor.s, found by probing the protocol directly over TCP with a Python script (see Debugging notes below):
 
-Design notes and dead ends, so they are not re-discovered the hard way:
+1. do_call mutated a6 (adda.l d0,a6) to reach the jump-table entry before jsr (a6). Many library functions use a6 internally as their own library base DURING execution - the calling convention requires a6 to stay the pure base for the whole call. The callee then read base-relative data from a shifted address and crashed with varying Guru codes inside the library''s own code region (the old "$00C2xxxx cluster" pattern - now explained). Fix: keep the LVO in d7 and use indexed addressing, jsr 0(a6,d7.w), which computes the target without touching a6.
+2. do_read/do_write loaded the transfer size with move.b rwbuf,d4 without clearing d4 first - move.b writes only the low byte, so any garbage in the upper 24 bits became a multi-gigabyte byte count and the monitor blocked forever reading SER: (hang, no Guru, Workbench alive). Fix: moveq #0,d4 first.
+3. do_write loaded the target address into a0 BEFORE reading the value bytes - but read_n_bytes calls dos.library Read(), and a0 is a scratch register across ANY library call, so the store went to a garbage address while still acking "K". Writes ACKed but never landed - first caught by a write-then-readback test; earlier sessions never read back after a write. Fix: load a0 after the last read_n_bytes.
+
+Design notes still in force:
 - The monitor does NOT call Forbid()/Disable(): that would break its own SER: I/O, which depends on interrupts to complete (Read()/Write() via dos.library).
-- LockPubScreen() is Kickstart 2.0/V36+ only - it does not exist in the intuition.library jump table on our Kickstart 1.3 target, and calling its LVO there executes garbage and crashes (Guru #00000003, Address Error). Confirmed via the "(V36)" tag on its official autodoc. Use workbenchScreenPointer (a direct read of IntuitionBase->FirstScreen, offset 60) instead - no locking concept exists yet in 1.3 anyway.
-- A raw poke to a color register (via writeMemoryAt:size:value: on $DFF180/COLOR00) is overwritten by Workbench''s own Copper list within ~20ms (one frame) - it is not a persistent change. Disabling only the Copper''s DMA channel to stop that is WORSE: the Copper is what resets the bitplane DMA pointers every frame, so without it bitplane DMA keeps marching through RAM producing corrupted/changing graphics.
-- graphics.library/SetRGB4(vp,n,r,g,b) - LVO -288, a0=viewport (workbenchScreenPointer+44, i.e. Screen->ViewPort), d0=colorIndex, d1=r, d2=g, d3=b - reliably changes the color on screen, then reliably crashes the Amiga shortly after. Confirmed NOT specific to gt4amiga-monitor''s execution context: the same crash reproduces calling SetRGB4 from a brand-new one-shot program via the ordinary GT4FSUAERunner pipeline (direct hardcoded jsr, not even going through this client''s computed-jump CALL mechanism).
-- intuition.library/MoveScreen(screen,dx,dy) - LVO -162, a0=screen, d0=0 (dx must be 0 pre-V36), d1=dy - ALSO crashes in the same way (tested via callLibrary:...), ruling out "it''s something specific to SetRGB4/MrgCop patching the live Copper list".
-- KEY PATTERN across all 3 crashes so far: DIFFERENT Guru codes each time (#00000003 Address Error at $00C2E188; #00000004 Illegal Instruction at $00C32860; #00000003 Address Error again at $00C2C4B8) but all three faulting addresses cluster in the same $00C2xxxx-$00C3xxxx region - consistent with a corrupted return address landing somewhere inside intuition.library/graphics.library''s own code/data area, and pointing at something SYSTEMIC to calling INTO these two specific libraries this way, rather than a bug in any one function. Not yet root-caused. exec.library and dos.library calls (used constantly via CALL and via the monitor''s own startup OpenLibrary/Open sequence) have never shown this problem.
-- graphics.library/WaitTOF() (LVO -270, no version tag, should be safe since 1.0) was tried as a possible fix for the SetRGB4 crash (theory: syncing to vblank before patching the live Copper list). Calling it from gt4amiga-monitor HANGS FOREVER instead (not a crash) and repeatedly pegged the host GT image''s CPU at 100%+ for many minutes. Do not call WaitTOF from this monitor.
+- LockPubScreen() is Kickstart 2.0/V36+ only - it does not exist in the intuition.library jump table on our Kickstart 1.3 target, and calling its LVO there executes garbage and crashes. Confirmed via the "(V36)" tag on its official autodoc. Use workbenchScreenPointer (a direct read of IntuitionBase->FirstScreen, offset 60) instead - no locking concept exists yet in 1.3 anyway.
+- A raw poke to a color register (via writeMemoryAt:size:value: on $DFF180/COLOR00) is overwritten by Workbench''s own Copper list within ~20ms (one frame) - it is not a persistent change. SetRGB4 via callLibrary: is the correct way and works now. Disabling only the Copper''s DMA channel to protect a raw poke is WORSE: the Copper is what resets the bitplane DMA pointers every frame.
+- graphics.library/WaitTOF() hung forever when called through the OLD broken do_call - very likely bug 1 above (it dereferences a6-relative data). Not retested since the fix; there is no reason to call it from the monitor anyway.
+- An earlier note here claimed the SetRGB4 crash also reproduced from a one-shot program with a hardcoded jsr; given the root causes above, that test program most likely had its own register-hygiene bug of the same family. SetRGB4 via CALL is verified working now.
 
-NEXT STEPS (paused 2026-07-09 by explicit user decision, cost of each attempt is a full FS-UAE + GT image restart): do not attempt more intuition.library/graphics.library CALLs until this systemic issue is understood. A good first worked example for the book, safe to build now: something using ONLY readMemoryAt:size:/writeMemoryAt:size:value: (e.g. reading JOY0DAT/mouse-joystick port state, or poking a custom chip register directly) - no CALL needed, zero crashes with this mechanism so far.
+Debugging notes (hard-won, keep):
+- To debug the wire protocol, bypass Pharo entirely: connect a small Python script directly to FS-UAE''s serial TCP port (Pharo must disconnectSerial first - FS-UAE accepts a single client). Deterministic timeouts, no MCP-timeout artifacts, no orphaned processes. This is how all three bugs above were isolated in minutes after hours of in-image debugging.
+- MCP evals that time out client-side KEEP RUNNING in the image. Orphaned processes blocked on socket waits make the VM''s idle-relinquish primitive return immediately (pending unconsumed socket events), pegging the GT main thread at 100% CPU even though NO Smalltalk process is runnable - diagnosed by sampling Processor''s quiescentProcessLists (only the Idle Process was ever runnable). Terminate the orphaned socket-waiting processes to fix it - but match them precisely: indiscriminately killing every socket-waiting process also kills the MCP server''s accept loop (happened once; requires restarting the MCP server inside the image).
+- A monitor blocked mid-protocol can usually be stopped cleanly by sending the QUIT opcode over a raw TCP connection (python: sendall(b''Q'')) instead of Break/reboot on the Amiga side.
 
 Canonical source for all LVOs/struct offsets used here: amigadev.elowar.com (WebFetch fails on this host - self-signed/expired cert - use `curl -sk` via Bash instead).'
 
@@ -132,13 +137,19 @@ GT4AmigaMonitorClient >> quit [
 GT4AmigaMonitorClient >> readExactly: n from: aSocket [
 	"Bounded retries (max ~30s) - if the Amiga side never responds
 	 (e.g. it crashed), give up instead of looping forever and leaving
-	 an orphaned process behind."
+	 an orphaned process behind. An EMPTY chunk must count as a retry
+	 too: when the peer resets the connection, receiveDataTimeout:
+	 returns immediately with no data, and not counting that spun this
+	 loop at full CPU forever (seen live: two orphaned evals pegged the
+	 GT image at 100% until terminated)."
 	| resp chunk tries |
 	resp := ByteArray new.
 	tries := 0.
 	[ resp size < n and: [ tries < 10 ] ] whileTrue: [
 		chunk := aSocket receiveDataTimeout: 3000.
-		chunk ifNotNil: [ resp := resp , chunk asByteArray ] ifNil: [ tries := tries + 1 ] ].
+		(chunk isNil or: [ chunk isEmpty ])
+			ifTrue: [ tries := tries + 1 ]
+			ifFalse: [ resp := resp , chunk asByteArray ] ].
 	^ resp
 ]
 

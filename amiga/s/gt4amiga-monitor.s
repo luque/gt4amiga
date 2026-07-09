@@ -77,6 +77,11 @@ do_read:
         lea     rwbuf,a5
         moveq   #6,d5
         bsr     read_n_bytes
+        moveq   #0,d4               ; move.b only sets the LOW byte of d4 -
+                                     ; without clearing it first, any garbage in
+                                     ; the upper 24 bits becomes a gigantic
+                                     ; byte count in read_n_bytes/write_n_bytes
+                                     ; and the monitor blocks forever on SER:
         move.b  rwbuf,d4
         move.l  rwbuf+2,a0
 
@@ -101,12 +106,21 @@ do_write:
         lea     rwbuf,a5
         moveq   #6,d5
         bsr     read_n_bytes
+        moveq   #0,d4               ; clear before move.b - see do_read
         move.b  rwbuf,d4
-        move.l  rwbuf+2,a0
 
         lea     databuf,a5
         move.l  d4,d5
         bsr     read_n_bytes
+
+        move.l  rwbuf+2,a0          ; load the target address AFTER the last
+                                     ; read_n_bytes: it calls dos.library Read()
+                                     ; and a0 is a scratch register across any
+                                     ; library call - loading it before (the
+                                     ; previous code) made the store below hit
+                                     ; a garbage address while still acking OK.
+                                     ; do_read is safe: it dereferences a0
+                                     ; before calling anything.
 
         cmp.b   #4,d4
         beq     wr_long
@@ -149,9 +163,15 @@ lib_dos:
 lib_intuition:
         move.l  a3,a6
 have_base:
-        move.w  callbuf+2,d0
-        ext.l   d0
-        adda.l  d0,a6
+        move.w  callbuf+2,d7        ; d7.w = LVO, kept as an INDEX register so
+                                     ; a6 itself is never altered - many library
+                                     ; functions use a6 internally as their own
+                                     ; base pointer during execution, not just to
+                                     ; locate the entry point. Mutating a6 before
+                                     ; the jsr (the previous approach) corrupts
+                                     ; that reference and crashes inside the
+                                     ; callee. (a6,d7.w) addressing computes
+                                     ; a6+sign_extend(d7.w) without touching a6.
 
         move.l  callbuf+4,a0
         move.l  callbuf+8,a1
@@ -160,7 +180,7 @@ have_base:
         move.l  callbuf+20,d2
         move.l  callbuf+24,d3
 
-        jsr     (a6)
+        jsr     0(a6,d7.w)
 
         move.l  d0,databuf
         lea     databuf,a5
