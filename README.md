@@ -200,6 +200,7 @@ GT4FSUAERunner default run: result.
 - [x] Copper book page ("El Copper — Un Split de Color en Vivo"): hand-built Copper list in live chip RAM, slider moving the split line — protocol design validated end-to-end; see the transport caveat in the page and in `GT4AmigaMonitorClient`'s class comment
 - [ ] Frame the monitor protocol (sync byte + length + checksum) so serial byte loss becomes a detectable, retryable error — prerequisite for making the copper examples bulletproof from Pharo
 - [ ] Software restore after a Copper takeover (`GfxBase->LOFlist` → `COP1LC`) instead of rebooting
+- [ ] Monitor resilience: on a SER: read error (e.g. buffer overrun under sustained slider traffic) reopen the port and continue instead of exiting silently (`read_n_bytes` currently does `ble close_ser`)
 - [ ] Syntax highlighting for 68000 assembly in the snippet editor
 - [ ] Bare-metal mode: bootable ADF generation for hardware-direct demos
 - [ ] Real hardware target via [A314](https://github.com/niklasekstrom/a314)
