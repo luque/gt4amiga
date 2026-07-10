@@ -201,15 +201,21 @@ GT4AmigaMonitorClient >> sendFrame: opcode payload: payload expect: expectedLen 
 	 suspect: a socket whose peer closed (e.g. FS-UAE quit or restarted)
 	 stays isConnected=true in CLOSE-WAIT, which connectSerial's guard
 	 cannot see - so force a reconnect and try one more round.
+	 Socket-level EXCEPTIONS (ConnectionClosed etc., seen under sustained
+	 rapid use) are treated as silence too: without this, a background
+	 worker calling here died silently and live updates just stopped.
 	 ^ payload ByteArray or nil."
 	| sock resp sawResponse |
 	2 timesRepeat: [
-		sock := self socket.
+		sock := [ self socket ] on: Error do: [ :e | nil ].
 		sock ifNil: [ ^ nil ].
 		sawResponse := false.
 		3 timesRepeat: [
-			self sendCommand: (self frameFor: opcode payload: payload) to: sock.
-			resp := self readResponsePayload: expectedLen from: sock.
+			resp := [
+				self sendCommand: (self frameFor: opcode payload: payload) to: sock.
+				self readResponsePayload: expectedLen from: sock ]
+					on: Error
+					do: [ :e | nil ].
 			resp == #nak
 				ifTrue: [ sawResponse := true ]
 				ifFalse: [
