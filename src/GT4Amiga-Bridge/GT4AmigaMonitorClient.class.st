@@ -16,12 +16,12 @@ Deploy and launch once per FS-UAE session:
 
 The monitor and the one-shot watcher/GT4FSUAERunner pipeline share the same single emulated serial port, so they are mutually exclusive at any given moment - do not run a one-shot snippet while the monitor is active.
 
-Protocol (see amigaSource for the full commented 68k source), one command -> one response:
-	READ  [$52][size][pad][addr(4)]                      -> [size bytes]
-	WRITE [$57][size][pad][addr(4)][size bytes]          -> [$4B ack]
-	CALL  [$43][libIndex][pad][lvo(2)][a0(4)][a1(4)][d0(4)][d1(4)][d2(4)][d3(4)] -> [d0 (4 bytes)]
-	GET SCREEN [$53]                                     -> [IntuitionBase->FirstScreen (4 bytes)]
-	QUIT  [$51]
+PROTOCOL v2 - FRAMED (see amigaSource for the full commented 68k source). Every command travels as [$A5][opcode][payload][chk] where chk = XOR of opcode and payload; every response as [$5A][status][payload][chk] where chk = XOR of status and payload. status 0 = OK (executed); status 1 = NAK: bad checksum, NOTHING was executed, always safe to resend (even a CALL). The monitor''s main loop HUNTS the $A5 sync byte, so it self-realigns after any corrupted frame - no more wedged-mid-command monitors. Commands (opcode / payload -> OK-response payload):
+	READ  $52  [size][pad][addr(4)]                      -> size bytes
+	WRITE $57  [size][pad][addr(4)][data x size]         -> (empty)
+	CALL  $43  [libIndex][pad][lvo(2)][a0..a1(4 each)][d0..d3(4 each)] -> d0 (4 bytes)
+	GET SCREEN $53  (no payload)                         -> IntuitionBase->FirstScreen (4 bytes)
+	QUIT  $51  (no payload)                              -> (empty), monitor exits
 
 libIndex for CALL: 0=exec 1=dos.library 2=intuition.library 3=graphics.library (bases opened once at monitor startup).
 
@@ -48,7 +48,8 @@ Debugging notes (hard-won, keep):
 TRANSPORT FINDINGS (2026-07-09, part 2) - read before debugging "lost bytes":
 - FS-UAE''s serial TCP port services a SINGLE client. A second concurrent connection is silently queued by the kernel: connect() succeeds, sends succeed (bytes pile up in the unread Recv-Q), responses go to the OLD client - a perfect black hole. EVERY mysterious hang must first be checked with: ss -tnp | grep <serialPort>. Never run a python probe while the image holds a connection (and vice versa), and remember a killed process can leave its connection lingering.
 - Socket>>receiveDataTimeout: takes SECONDS (see readExactly:from:). The pre-fix milliseconds-as-seconds values created near-eternal reader processes that stole response bytes from every later call, desyncing the monitor''s parser (stolen single bytes shift ALL subsequent command framing - the corrupted writes observed in memory were commands re-parsed one byte off).
-- Burst sends from THIS Pharo VM sometimes lose the 8th byte of a 9/11-byte command between the TCP socket and the emulated UART (bistable: byte-identical bursts from a python process never lose anything; the same Pharo loop can pass 24/24 and later fail 0/8 - a microscopic arrival-phase effect in FS-UAE''s serial injection, not payload-dependent). Mitigation: sendCommand:to: paces command bytes 3ms apart - much more reliable but NOT proven bulletproof. The definitive fix is PROTOCOL FRAMING in gt4amiga-monitor.s (sync byte + length + checksum + echoed ack) so any transport loss becomes a detectable, retryable command failure instead of silent desync - planned, not yet implemented. Until then, verify every important write with a readback, and never trust an unverified write to a hardware register.
+- THE GRAND FINALE (2026-07-10): after framing was in place and the monitor kept "not executing" Pharo writes while executing byte-identical python ones, the true root cause of EVERY "sender-dependent transport anomaly" of the past two days surfaced: writeMemoryAt:size:value: sliced its value bytes with an off-by-one ((be32: v) copyFrom: 5 - aSize + 1 to: 4 instead of 5 - aSize to: 4), so every Pharo write since v1 of this client went out ONE DATA BYTE SHORT. The monitor blocked waiting for the missing byte and then consumed the next command''s first byte - producing the "8th byte dropped", the alternating ack pattern, the shifted-command memory corruption, and the paced-vs-burst mirage (manual test snippets built payloads from literals and worked; anything through the method failed). FS-UAE''s serial transport was NEVER guilty of losing a single byte. Morals: (1) when only one command misbehaves, diff the BYTES THE METHOD BUILDS against a known-good client''s bytes FIRST, before any transport theory; (2) the v2 framing turned this bug from silent memory corruption into clean NAK/timeout failures, which is exactly why it exists - keep it. Frames are sent as single bursts (sendCommand:), same as the python reference client.
+- A Pharo Socket whose peer closed (FS-UAE quit/restarted) stays isConnected=true in CLOSE-WAIT state - connectSerial''s guard cannot see it, sends go nowhere, reads return empty. sendFrame:... self-heals: after a fully silent attempt round it forces disconnectSerial and reconnects once. Diagnose manually with: ss -tnp | grep 2345 (look for CLOSE-WAIT and for whether fs-uae still owns a connection).
 - Reference diagnostic: a direct python client (scratchpad serialprobe.py pattern) has been 100% reliable all day - use it to discriminate transport-vs-monitor issues, ALWAYS releasing the Pharo-side connection first.
 - Copper-takeover restore: intuition/RethinkDisplay (LVO -390) called via CALL returns normally but did NOT restore COP1LC from this monitor''s context (observed twice). Do NOT FreeMem a copper list the hardware may still be executing - the freed chip RAM gets reused and the display flickers garbage. Restore procedure to try next: read GfxBase->LOFlist (offset to be verified against graphics/gfxbase.i first) and write it to COP1LCH/COP1LCL directly, re-enable DMA, only then FreeMem. Rebooting the Amiga is the honest fallback.
 - Writing a 32-bit register pair like COP1LC is safer as TWO 16-bit writes (COP1LCH $DFF080, COP1LCL $DFF082) with copper DMA disabled around the swap (DMACON $0080 off / $8080 on): a lost byte inside a single 4-byte write, or a vblank strobe between half-updated words, corrupts the pointer.
@@ -106,32 +107,118 @@ GT4AmigaMonitorClient >> bytesToLong: aByteArray [
 GT4AmigaMonitorClient >> callLibrary: libIndex lvo: anLvo a0: a0 a1: a1 d0: d0 d1: d1 d2: d2 d3: d3 [
 	"libIndex: 0=exec 1=dos.library 2=intuition.library 3=graphics.library.
 	 anLvo is the (negative) library vector offset. Returns d0 after the
-	 call, or nil if the response did not arrive."
-	| sock cmd resp |
-	sock := self socket.
-	cmd := (ByteArray with: 67 with: libIndex with: 0) ,
-		(self be16Signed: anLvo) ,
-		(self be32: a0) , (self be32: a1) ,
-		(self be32: d0) , (self be32: d1) , (self be32: d2) , (self be32: d3).
-	self sendCommand: cmd to: sock.
-	resp := self readExactly: 4 from: sock.
-	resp size = 4 ifFalse: [ ^ nil ].
+	 call, or nil if no verified response arrived. NOT retried on silence
+	 (only on NAK): a call could have executed before its response was
+	 lost, and most calls are not idempotent."
+	| resp |
+	resp := self
+		sendFrame: 67
+		payload: (ByteArray with: libIndex with: 0) ,
+			(self be16Signed: anLvo) ,
+			(self be32: a0) , (self be32: a1) ,
+			(self be32: d0) , (self be32: d1) , (self be32: d2) , (self be32: d3)
+		expect: 4
+		retryOnSilence: false.
+	resp ifNil: [ ^ nil ].
 	^ self bytesToLong: resp
 ]
 
 { #category : #'private' }
 GT4AmigaMonitorClient >> sendCommand: aByteArray to: aSocket [
-	"Send the command bytes PACED (3ms apart) instead of as one burst.
-	 Burst sends from this Pharo VM deterministically lose the 8th byte
-	 of a 9-byte command somewhere in FS-UAE's TCP->serial injection
-	 (bistable: identical byte-for-byte bursts from a python process never
-	 lose anything - a microscopic arrival-phase effect against the
-	 emulated UART, not a payload difference; see the class comment).
-	 Byte-paced sends have been 100% reliable (verified with dozens of
-	 write-then-readback cycles)."
-	aByteArray do: [ :b |
-		aSocket sendData: (ByteArray with: b) asString.
-		(Delay forMilliseconds: 3) wait ]
+	"Send the whole command frame as ONE burst (a single TCP segment).
+	 Do NOT be tempted to pace bytes individually: a v2 W frame sent as
+	 eleven 1-byte TCP segments was swallowed whole by FS-UAE's serial
+	 ingestion 10/10 times, while the identical bytes as one segment
+	 passed 10/10. (Byte-pacing was originally added as a mitigation in
+	 the pre-framing era; the losses it seemed to fix were actually
+	 caused by orphaned reader processes and a desynced monitor parser,
+	 both since eliminated - see the class comment.)"
+	aSocket sendData: aByteArray asString
+]
+
+{ #category : #'private' }
+GT4AmigaMonitorClient >> frameFor: opcode payload: aByteArray [
+	"Protocol v2 command frame: [$A5][opcode][payload][chk],
+	 chk = XOR of opcode and every payload byte."
+	| chk |
+	chk := opcode.
+	aByteArray do: [ :b | chk := chk bitXor: b ].
+	^ (ByteArray with: 16rA5 with: opcode) , aByteArray , (ByteArray with: chk)
+]
+
+{ #category : #'private' }
+GT4AmigaMonitorClient >> readResponsePayload: expectedLen from: aSocket [
+	"Protocol v2 response frame: [$5A][status][payload][chk],
+	 chk = XOR of status and payload. Parses over an accumulated buffer:
+	 readExactly:from: returns whole CHUNKS (at least n bytes, not exactly
+	 n), so byte-at-a-time reads would swallow the rest of the frame.
+	 Hunts the $5A sync inside the buffer, so stale bytes from an earlier
+	 failed exchange are discarded; a data byte that fakes a sync fails
+	 the checksum and is skipped.
+	 ^ a ByteArray (the payload; empty is a valid ack)
+	   | #nak  (monitor rejected the checksum, NOTHING was executed)
+	   | nil   (silence or corrupt response - execution UNCERTAIN)"
+	| buf idx status frameLen payload chk acc attempts |
+	buf := self readExactly: 3 + expectedLen from: aSocket.
+	attempts := 0.
+	[ attempts < 4 ] whileTrue: [
+		attempts := attempts + 1.
+		idx := buf indexOf: 16r5A.
+		idx > 0
+			ifTrue: [
+				buf := buf copyFrom: idx to: buf size.
+				buf size >= 2
+					ifTrue: [
+						status := buf at: 2.
+						status = 1 ifTrue: [ ^ #nak ].
+						status = 0
+							ifTrue: [
+								frameLen := 3 + expectedLen.
+								buf size >= frameLen
+									ifTrue: [
+										payload := buf copyFrom: 3 to: 2 + expectedLen.
+										chk := buf at: frameLen.
+										acc := 0.
+										payload do: [ :x | acc := acc bitXor: x ].
+										acc = chk ifTrue: [ ^ payload ].
+										buf := buf copyFrom: 2 to: buf size ]
+									ifFalse: [
+										buf := buf , (self readExactly: frameLen - buf size from: aSocket) ] ]
+							ifFalse: [ buf := buf copyFrom: 2 to: buf size ] ]
+					ifFalse: [ buf := buf , (self readExactly: 1 from: aSocket) ] ]
+			ifFalse: [ buf := self readExactly: 3 + expectedLen from: aSocket ] ].
+	^ nil
+]
+
+{ #category : #'private' }
+GT4AmigaMonitorClient >> sendFrame: opcode payload: payload expect: expectedLen retryOnSilence: aBoolean [
+	"Send a framed command with retries. A NAK is ALWAYS safe to retry
+	 (the monitor verified the checksum failed BEFORE executing anything).
+	 Silence/corrupt responses mean execution is uncertain: retried only
+	 when aBoolean is true (idempotent commands: R, W, S; NOT C - a
+	 library call could have executed before its response was lost).
+	 If a whole round of attempts is SILENT, the connection itself is
+	 suspect: a socket whose peer closed (e.g. FS-UAE quit or restarted)
+	 stays isConnected=true in CLOSE-WAIT, which connectSerial's guard
+	 cannot see - so force a reconnect and try one more round.
+	 ^ payload ByteArray or nil."
+	| sock resp sawResponse |
+	2 timesRepeat: [
+		sock := self socket.
+		sock ifNil: [ ^ nil ].
+		sawResponse := false.
+		3 timesRepeat: [
+			self sendCommand: (self frameFor: opcode payload: payload) to: sock.
+			resp := self readResponsePayload: expectedLen from: sock.
+			resp == #nak
+				ifTrue: [ sawResponse := true ]
+				ifFalse: [
+					resp ifNotNil: [ ^ resp ].
+					aBoolean ifFalse: [ ^ nil ] ] ].
+		sawResponse ifTrue: [ ^ nil ].
+		"ronda entera en silencio: reconectar y reintentar una vez"
+		GT4FSUAERunner default disconnectSerial ].
+	^ nil
 ]
 
 { #category : #'deploying' }
@@ -153,7 +240,7 @@ GT4AmigaMonitorClient >> deploy [
 GT4AmigaMonitorClient >> quit [
 	"Ask the monitor to close its libraries and SER: and return, ending
 	 the Run'd process cleanly."
-	self socket sendData: (ByteArray with: 81) asString
+	self sendFrame: 81 payload: #[] expect: 0 retryOnSilence: false
 ]
 
 { #category : #'private' }
@@ -184,12 +271,13 @@ GT4AmigaMonitorClient >> readMemoryAt: anAddress size: aSize [
 	"aSize is 1, 2 or 4 (byte/word/long). Raw peek - no library involved,
 	 see the class comment for why this alone is not enough to change a
 	 Workbench palette color persistently (the copper overwrites it)."
-	| sock cmd resp |
-	sock := self socket.
-	cmd := (ByteArray with: 82 with: aSize with: 0) , (self be32: anAddress).
-	self sendCommand: cmd to: sock.
-	resp := self readExactly: aSize from: sock.
-	resp size = aSize ifFalse: [ ^ nil ].
+	| resp |
+	resp := self
+		sendFrame: 82
+		payload: (ByteArray with: aSize with: 0) , (self be32: anAddress)
+		expect: aSize
+		retryOnSilence: true.
+	resp ifNil: [ ^ nil ].
 	^ self bytesToInt: resp
 ]
 
@@ -208,22 +296,28 @@ GT4AmigaMonitorClient >> workbenchScreenPointer [
 	 LockPubScreen: that call is V36-only (Kickstart 2.0+) and does not
 	 exist in the intuition.library jump table on our Kickstart 1.3
 	 target - see the class comment for how this was diagnosed."
-	| sock resp |
-	sock := self socket.
-	sock sendData: (ByteArray with: 83) asString.
-	resp := self readExactly: 4 from: sock.
-	resp size = 4 ifFalse: [ ^ nil ].
+	| resp |
+	resp := self sendFrame: 83 payload: #[] expect: 4 retryOnSilence: true.
+	resp ifNil: [ ^ nil ].
 	^ self bytesToLong: resp
 ]
 
 { #category : #'protocol' }
 GT4AmigaMonitorClient >> writeMemoryAt: anAddress size: aSize value: aValue [
-	"aSize is 1, 2 or 4 (byte/word/long). Raw poke - see readMemoryAt:size:."
-	| sock cmd resp valueBytes |
-	sock := self socket.
-	valueBytes := (self be32: aValue) copyFrom: 5 - aSize + 1 to: 4.
-	cmd := (ByteArray with: 87 with: aSize with: 0) , (self be32: anAddress) , valueBytes.
-	self sendCommand: cmd to: sock.
-	resp := self readExactly: 1 from: sock.
-	^ resp size = 1 and: [ (resp at: 1) = 75 ]
+	"aSize is 1, 2 or 4 (byte/word/long). Raw poke. Returns true when the
+	 monitor acknowledged the (checksum-verified) write.
+	 valueBytes slice: be32 gives 4 bytes; the LAST aSize of them are the
+	 value, so start = 5 - aSize (size 1 -> 4..4, 2 -> 3..4, 4 -> 1..4).
+	 An off-by-one here (5 - aSize + 1) shipped ONE BYTE SHORT for every
+	 write since v1 of this client: the monitor blocked waiting for the
+	 missing byte, then ate the next command's first byte - the source of
+	 every phantom transport theory of 2026-07-09 (see class comment)."
+	| valueBytes resp |
+	valueBytes := (self be32: aValue) copyFrom: 5 - aSize to: 4.
+	resp := self
+		sendFrame: 87
+		payload: (ByteArray with: aSize with: 0) , (self be32: anAddress) , valueBytes
+		expect: 0
+		retryOnSilence: true.
+	^ resp isNil not
 ]

@@ -103,14 +103,14 @@
 					"__type" : "time",
 					"time" : {
 						"__type" : "dateAndTime",
-						"dateAndTimeString" : "2026-07-09T18:57:22.861129+02:00"
+						"dateAndTimeString" : "2026-07-10T03:04:14.946757+02:00"
 					}
 				},
 				"uid" : {
 					"__type" : "uid",
 					"uidString" : "Ad4C3YekQsuWn6AuqIHd6Q=="
 				},
-				"code" : "\"Paso 1: reservar 32 bytes de CHIP RAM (el Copper solo ve chip RAM) via\n exec.library/AllocMem (LVO -198, d0=bytes, d1=flags; MEMF_CHIP|MEMF_CLEAR\n = $10002), escribir las 8 words de la lista, y VERIFICAR por readback\n antes de instalar nada: jamás apuntes hardware a memoria sin verificar.\"\n| monitor clist words readback |\nmonitor := GT4AmigaMonitorClient default.\nclist := monitor callLibrary: 0 lvo: -198 a0: 0 a1: 0 d0: 32 d1: 16r10002 d2: 0 d3: 0.\nSmalltalk at: #GT4ACopperList put: clist.\nwords := {\n\t16r0180. 16r005A.                \"MOVE COLOR00, azul WB (0,5,10)\"\n\t(130 bitShift: 8) + 1. 16rFF00.  \"WAIT línea 130\"\n\t16r0180. 16r0F80.                \"MOVE COLOR00, naranja (15,8,0)\"\n\t16rFFFF. 16rFFFE }.              \"fin de lista\"\nwords doWithIndex: [ :w :i |\n\tmonitor writeMemoryAt: clist + (i - 1 * 2) size: 2 value: w ].\nreadback := (1 to: 8) collect: [ :i |\n\tmonitor readMemoryAt: clist + (i - 1 * 2) size: 2 ].\nreadback = words\n\tifTrue: [ 'lista verificada en ' , (clist printStringHex) ]\n\tifFalse: [ 'VERIFICACIÓN FALLIDA — repite este snippet, NO instales: ' , readback printString ]"
+				"code" : "\"Paso 1: reservar 32 bytes de CHIP RAM (el Copper solo ve chip RAM) via\n exec.library/AllocMem (LVO -198, d0=bytes, d1=flags; MEMF_CHIP|MEMF_CLEAR\n = $10002), escribir las 8 words de la lista, y VERIFICAR por readback\n antes de instalar nada: jamás apuntes hardware a memoria sin verificar.\n El S inicial 'calienta' la conexión (es idempotente y auto-reconecta\n si el socket quedó viciado tras un reinicio de FS-UAE).\"\n| monitor clist words readback |\nmonitor := GT4AmigaMonitorClient default.\nmonitor workbenchScreenPointer\n\tifNil: [ ^ 'el monitor no responde — ¿está corriendo en el Amiga?' ].\nclist := monitor callLibrary: 0 lvo: -198 a0: 0 a1: 0 d0: 32 d1: 16r10002 d2: 0 d3: 0.\nclist ifNil: [ ^ 'AllocMem sin respuesta verificada — reevalúa este snippet' ].\nSmalltalk at: #GT4ACopperList put: clist.\nwords := {\n\t16r0180. 16r005A.                \"MOVE COLOR00, azul WB (0,5,10)\"\n\t(130 bitShift: 8) + 1. 16rFF00.  \"WAIT línea 130\"\n\t16r0180. 16r0F80.                \"MOVE COLOR00, naranja (15,8,0)\"\n\t16rFFFF. 16rFFFE }.              \"fin de lista\"\nwords doWithIndex: [ :w :i |\n\tmonitor writeMemoryAt: clist + (i - 1 * 2) size: 2 value: w ].\nreadback := (1 to: 8) collect: [ :i |\n\tmonitor readMemoryAt: clist + (i - 1 * 2) size: 2 ].\nreadback = words\n\tifTrue: [ 'lista verificada en ' , clist printStringHex ]\n\tifFalse: [ 'VERIFICACIÓN FALLIDA — repite este snippet, NO instales: ' , readback printString ]"
 			},
 			{
 				"__type" : "textSnippet",
