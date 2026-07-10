@@ -120,7 +120,14 @@ cp amiga/s/* shared/s/
 
 ### 5. Bridge server (live memory / library-call access)
 
-Besides the one-shot assemble → deploy → run pipeline, `GT4Amiga-Bridge` provides `GT4AmigaMonitorClient`: a Pharo-side client for `amiga/s/gt4amiga-monitor.s`, a resident AmigaDOS program that answers a small binary protocol over `SER:` — memory peek/poke and generic AmigaOS library calls — without assembling and launching a new program each time. It's deliberately generic (four primitives: read/write memory, a generic library-function call, and the Workbench screen pointer) rather than one convenience method per example; worked examples (e.g. driving a live Workbench interaction from a GToolkit slider) belong as explained Lepiter snippets composing these primitives, not as methods baked into the client.
+Besides the one-shot assemble → deploy → run pipeline, `GT4Amiga-Bridge` provides `GT4AmigaMonitorClient`: a Pharo-side client for `amiga/s/gt4amiga-monitor.s`, a resident AmigaDOS program that answers a small framed binary protocol — memory peek/poke and generic AmigaOS library calls — without assembling and launching a new program each time. It's deliberately generic (four primitives: read/write memory, a generic library-function call, and the Workbench screen pointer) rather than one convenience method per example; worked examples (e.g. driving a live Workbench interaction from a GToolkit slider) belong as explained Lepiter snippets composing these primitives, not as methods baked into the client.
+
+The monitor auto-selects between **two transports** at startup:
+
+- **TCP (`bsdsocket.library`)** — for real hardware with a running TCP/IP stack (e.g. an A500 accelerated with PiStorm/Emu68, WiFi via `wifipi.device` + Roadshow). The monitor becomes a TCP server on port 2345; point GToolkit at it with `GT4AmigaConfiguration default monitorHost: '<amiga-ip>'`. Clients may disconnect and reconnect freely — the monitor `accept()`s the next connection.
+- **`SER:` (dos.library)** — fallback when no TCP stack exists (e.g. Workbench 1.3 under FS-UAE, where FS-UAE bridges the emulated serial port to a host TCP socket). This is the classic emulator setup and needs no configuration (`monitorHost` defaults to `127.0.0.1`).
+
+The wire protocol is byte-identical on both transports, so the Pharo client and every book example work unchanged against the emulator or the real machine. For real hardware, copy the assembled `monitor` binary over once by whatever means your network offers (FTP/SMB), then `Run >NIL: monitor` from a Shell.
 
 ```smalltalk
 GT4AmigaMonitorClient default deploy.
@@ -200,7 +207,9 @@ GT4FSUAERunner default run: result.
 - [x] Copper book page ("El Copper — Un Split de Color en Vivo"): hand-built Copper list in live chip RAM, slider moving the split line — protocol design validated end-to-end; see the transport caveat in the page and in `GT4AmigaMonitorClient`'s class comment
 - [ ] Frame the monitor protocol (sync byte + length + checksum) so serial byte loss becomes a detectable, retryable error — prerequisite for making the copper examples bulletproof from Pharo
 - [ ] Software restore after a Copper takeover (`GfxBase->LOFlist` → `COP1LC`) instead of rebooting
-- [ ] Monitor resilience: on a SER: read error (e.g. buffer overrun under sustained slider traffic) reopen the port and continue instead of exiting silently (`read_n_bytes` currently does `ble close_ser`)
+- [x] Monitor transport abstraction: TCP server via `bsdsocket.library` (real hardware over the network) with `SER:` fallback (FS-UAE), auto-selected at startup; stack discipline fixed so link-loss exits are clean from any call depth
+- [ ] Test the TCP transport on real hardware (A500 + PiStorm/Emu68 + WiFi)
+- [ ] Monitor resilience on `SER:`: reopen the port after a read error instead of exiting (the TCP transport already survives client loss via its accept loop)
 - [ ] Syntax highlighting for 68000 assembly in the snippet editor
 - [ ] Bare-metal mode: bootable ADF generation for hardware-direct demos
 - [ ] Real hardware target via [A314](https://github.com/niklasekstrom/a314)

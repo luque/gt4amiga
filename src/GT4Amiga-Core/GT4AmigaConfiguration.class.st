@@ -8,6 +8,7 @@ Class {
 		'workbenchHdfPath',
 		'sharedDirectory',
 		'serialPort',
+		'monitorHost',
 		'amigaModel',
 		'chipMemory',
 		'fastMemory'
@@ -146,6 +147,21 @@ GT4AmigaConfiguration >> sharedDirectory [
 { #category : #accessing }
 GT4AmigaConfiguration >> sharedDirectory: aFileReference [
 	sharedDirectory := aFileReference asFileReference
+]
+
+{ #category : #accessing }
+GT4AmigaConfiguration >> monitorHost [
+	"Host donde escucha el monitor. Por defecto 127.0.0.1 (FS-UAE puentea
+	 el SER: emulado a un socket TCP local). Para hardware real (p.ej.
+	 A500 + PiStorm con el monitor en modo bsdsocket) poner aqui la IP
+	 del Amiga en la red local:
+	   GT4AmigaConfiguration default monitorHost: '192.168.1.x'"
+	^ monitorHost ifNil: [ '127.0.0.1' ]
+]
+
+{ #category : #accessing }
+GT4AmigaConfiguration >> monitorHost: aString [
+	monitorHost := aString
 ]
 
 { #category : #accessing }

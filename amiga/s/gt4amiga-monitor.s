@@ -1,6 +1,24 @@
 
 ; gt4amiga-monitor: bridge de lectura/escritura de memoria + llamada
-; generica a funciones de libreria, en tiempo real, via SER:
+; generica a funciones de libreria, en tiempo real, con DOS TRANSPORTES:
+;
+;   - TCP (bsdsocket.library): para hardware real con pila TCP/IP
+;     (p.ej. A500 + PiStorm/Emu68 + wifipi + Roadshow). El monitor es un
+;     servidor TCP en el puerto 2345; GT se conecta a <ip-amiga>:2345.
+;     Si un cliente desconecta, se acepta al siguiente (resiliencia).
+;   - SER: (dos.library): para FS-UAE, que puentea el puerto serie
+;     emulado a un socket TCP del host (misma semantica que siempre).
+;
+; Seleccion automatica al arrancar: si bsdsocket.library existe (hay
+; pila TCP corriendo) se usa TCP; si no (p.ej. Workbench 1.3 bajo
+; FS-UAE), SER:. El protocolo que viaja es identico en ambos.
+;
+; LVOs de bsdsocket.library verificados contra el FD canonico de AmiTCP
+; (bias 30, paso 6): socket -30 (d0/d1/d2), bind -36 (d0/a0/d1),
+; listen -42 (d0/d1), accept -48 (d0/a0/a1), send -66 (d0/a0/d1/d2),
+; recv -78 (d0/a0/d1/d2), setsockopt -90 (d0/d1/d2/a0/d3),
+; CloseSocket -120 (d0). Convenciones contrastadas con el autodoc
+; oficial (wiki.amigaos.net/amiga/autodocs/bsdsocket.doc.txt).
 ;
 ; PROTOCOLO v2 (enmarcado). Cada comando llega como:
 ;       [$A5][opcode][payload][chk]
@@ -12,13 +30,9 @@
 ; puede reenviar con total seguridad, incluso un CALL).
 ;
 ; El bucle principal CAZA el byte de sincronia $A5: si una trama llega
-; mutilada (el transporte serie de FS-UAE pierde bytes de forma
-; intermitente en rafagas desde ciertos clientes), el parser descarta
-; bytes hasta el siguiente $A5 y se realinea solo - nunca mas un monitor
-; clavado a mitad de comando. Un $A5 dentro de un payload es inocuo en
-; operacion normal (dentro de una trama se lee por longitud, no se
-; interpreta); durante una recuperacion puede producir como mucho un
-; intercambio fallido extra, que el checksum convierte en NAK/reintento.
+; mutilada, el parser descarta bytes hasta el siguiente $A5 y se
+; realinea solo. Un $A5 dentro de un payload es inocuo en operacion
+; normal (dentro de una trama se lee por longitud, no se interpreta).
 ;
 ; Comandos (opcode / payload / respuesta):
 ;   R $52  [size][pad][addr.l]            -> payload = size bytes leidos
@@ -28,17 +42,21 @@
 ;   S $53  (sin payload)                  -> payload = IntuitionBase->FirstScreen
 ;   Q $51  (sin payload)                  -> payload vacio; el monitor termina
 ;
-; Comando S: IntuitionBase->FirstScreen esta en el offset 60 (confirmado
-; contra headers primarios: sizeof(struct Library)=34 + sizeof(struct
-; View)=18 + ActiveWindow(4) + ActiveScreen(4)). Sustituye a
-; LockPubScreen(), que es V36+ y no existe en Kickstart 1.3.
+; DISCIPLINA DE PILA: los saltos de error (p.ej. Read/recv fallido)
+; ocurren DENTRO de subrutinas, con direcciones de retorno acumuladas
+; en la pila. El SP se guarda al entrar (stacksave) y se restaura en
+; cada punto de salida/reciclaje - sin esto, el movem.l (sp)+ final
+; restauraba basura y el rts saltaba a cualquier parte (la "salida
+; limpia" por error de lectura era en realidad un crash silencioso).
 
         SECTION code,CODE
 
 MODE_OLDFILE equ 1005
+TCP_PORT     equ 2345
 
 start:
         movem.l d2-d7/a2-a6,-(sp)
+        move.l  sp,stacksave
 
         move.l  4.w,a6
         lea     dosname,a1
@@ -62,6 +80,64 @@ start:
         beq     close_intuition
         move.l  d0,a4
 
+; --- seleccion de transporte -------------------------------------------
+
+        move.l  4.w,a6              ; hay pila TCP? (bsdsocket.library
+        lea     bsdname,a1           ; solo existe con la pila arrancada)
+        moveq   #0,d0
+        jsr     -552(a6)
+        tst.l   d0
+        beq     try_serial
+        move.l  d0,sockbase
+
+        move.l  d0,a6               ; socket(AF_INET=2, SOCK_STREAM=1, 0)
+        moveq   #2,d0
+        moveq   #1,d1
+        moveq   #0,d2
+        jsr     -30(a6)
+        tst.l   d0
+        bmi     tcp_fail_lib
+        move.l  d0,listenfd
+
+        move.l  #1,optval           ; setsockopt(fd, SOL_SOCKET=$FFFF,
+        move.l  listenfd,d0          ;  SO_REUSEADDR=4, &1, 4): permite
+        move.l  #$FFFF,d1            ;  relanzar el monitor sin esperar
+        moveq   #4,d2                ;  el TIME_WAIT del puerto
+        lea     optval,a0
+        moveq   #4,d3
+        jsr     -90(a6)
+
+        move.b  #16,sockaddr        ; sockaddr_in (estilo BSD4.4):
+        move.b  #2,sockaddr+1        ; [len][family=AF_INET][port.w][addr.l]
+        move.w  #TCP_PORT,sockaddr+2 ; (BSS ya esta a cero: addr=INADDR_ANY)
+        move.l  listenfd,d0
+        lea     sockaddr,a0
+        moveq   #16,d1
+        jsr     -36(a6)             ; bind
+        tst.l   d0
+        bne     tcp_fail_close
+
+        move.l  listenfd,d0         ; listen(fd, 1)
+        moveq   #1,d1
+        jsr     -42(a6)
+        tst.l   d0
+        bne     tcp_fail_close
+
+        move.b  #1,transport
+        bra     accept_client
+
+tcp_fail_close:
+        move.l  sockbase,a6
+        move.l  listenfd,d0
+        jsr     -120(a6)            ; CloseSocket
+tcp_fail_lib:
+        move.l  4.w,a6
+        move.l  sockbase,a1
+        jsr     -414(a6)            ; CloseLibrary
+        clr.l   sockbase
+
+try_serial:
+        clr.b   transport
         move.l  a2,a6
         lea     sername,a1
         move.l  a1,d1
@@ -69,11 +145,26 @@ start:
         jsr     -30(a6)
         move.l  d0,d6
         beq     close_graphics
+        bra     mainloop
+
+accept_client:
+        move.l  stacksave,sp        ; se llega aqui desde cualquier
+        move.l  sockbase,a6          ; profundidad tras perder un cliente
+        move.l  #16,addrlen
+        move.l  listenfd,d0
+        lea     acceptaddr,a0
+        lea     addrlen,a1
+        jsr     -48(a6)             ; accept (bloquea hasta un cliente)
+        tst.l   d0
+        bmi     shutdown_tcp        ; error de accept: apagar limpio
+        move.l  d0,clientfd
+
+; --- bucle principal del protocolo (identico en ambos transportes) -----
 
 mainloop:
 hunt:
-        lea     opbyte,a5           ; cazar el byte de sincronia $A5:
-        moveq   #1,d5                ; descartar bytes hasta encontrarlo
+        lea     opbyte,a5           ; cazar el byte de sincronia $A5
+        moveq   #1,d5
         bsr     read_n_bytes
         cmp.b   #$A5,opbyte
         bne     hunt
@@ -81,8 +172,8 @@ hunt:
         lea     opbyte,a5           ; opcode
         moveq   #1,d5
         bsr     read_n_bytes
-        move.b  opbyte,d7           ; d7 = opcode (sobrevive a Read/Write:
-                                     ; dos.library solo destruye d0/d1/a0/a1)
+        move.b  opbyte,d7           ; d7 = opcode (los callees solo
+                                     ; destruyen d0/d1/a0/a1)
 
         cmp.b   #$52,d7
         beq     do_read
@@ -168,7 +259,7 @@ dw_szok:
         adda.l  d5,a5
         cmp.b   (a5),d4
         bne     send_nak
-        move.l  rwbuf+2,a0          ; cargar a0 DESPUES del ultimo Read():
+        move.l  rwbuf+2,a0          ; cargar a0 DESPUES del ultimo read:
         moveq   #0,d4                ; a0 es scratch en cualquier llamada
         move.b  rwbuf,d4             ; de libreria
         cmp.b   #4,d4
@@ -249,7 +340,7 @@ do_quit:
         lea     respbuf,a5
         moveq   #3,d5
         bsr     write_n_bytes
-        bra     close_ser
+        bra     shutdown_all
 
 ; --- respuestas -------------------------------------------------------
 
@@ -281,10 +372,102 @@ send_nak:
         bsr     write_n_bytes
         bra     mainloop
 
-; --- cierre -----------------------------------------------------------
+; --- E/S con despacho por transporte ----------------------------------
 
-close_ser:
-        move.l  a2,a6
+read_n_bytes:                       ; a5 = buffer, d5 = n
+        tst.b   transport
+        bne.s   rnb_tcp
+        move.l  a2,a6               ; SER: via dos.library Read
+rnb_serloop:
+        move.l  d6,d1
+        move.l  a5,d2
+        moveq   #1,d3
+        jsr     -42(a6)
+        tst.l   d0
+        ble     serial_lost
+        addq.l  #1,a5
+        subq.l  #1,d5
+        bne.s   rnb_serloop
+        rts
+rnb_tcp:
+        move.l  sockbase,a6         ; TCP via bsdsocket recv
+rnb_tcploop:
+        move.l  clientfd,d0
+        move.l  a5,a0
+        move.l  d5,d1
+        moveq   #0,d2
+        jsr     -78(a6)             ; recv(fd, buf, len, 0)
+        tst.l   d0
+        ble     client_lost         ; 0 = cierre ordenado, <0 = error
+        adda.l  d0,a5               ; recv puede devolver menos de lo
+        sub.l   d0,d5                ; pedido: avanzar y repetir
+        bne.s   rnb_tcploop
+        rts
+
+write_n_bytes:                      ; a5 = buffer, d5 = n
+        tst.b   transport
+        bne.s   wnb_tcp
+        move.l  a2,a6               ; SER: via dos.library Write
+        move.l  d6,d1
+        move.l  a5,d2
+        move.l  d5,d3
+        jsr     -48(a6)
+        rts
+wnb_tcp:
+        move.l  sockbase,a6
+wnb_tcploop:
+        move.l  clientfd,d0
+        move.l  a5,a0
+        move.l  d5,d1
+        moveq   #0,d2
+        jsr     -66(a6)             ; send(fd, buf, len, 0)
+        tst.l   d0
+        ble     client_lost
+        adda.l  d0,a5
+        sub.l   d0,d5
+        bne.s   wnb_tcploop
+        rts
+
+xor_buf:                            ; a5 = buffer, d5 = n; acumula en d4
+xb_loop:
+        move.b  (a5)+,d3
+        eor.b   d3,d4
+        subq.l  #1,d5
+        bne.s   xb_loop
+        rts
+
+; --- perdida de enlace y cierre ---------------------------------------
+
+client_lost:                        ; TCP: el cliente se fue - cerrar su
+        move.l  sockbase,a6          ; socket y aceptar al siguiente
+        move.l  clientfd,d0          ; (accept_client restaura el SP)
+        jsr     -120(a6)
+        bra     accept_client
+
+serial_lost:                        ; SER: error de lectura - salida
+        move.l  stacksave,sp         ; ordenada (SP restaurado: podemos
+        bra     shutdown_all         ; llegar desde cualquier profundidad)
+
+shutdown_tcp:
+        move.l  stacksave,sp
+        bra     shutdown_all
+
+shutdown_all:
+        move.l  stacksave,sp
+        tst.b   transport
+        beq.s   sd_serial
+        move.l  sockbase,a6         ; TCP: cerrar cliente + listener +
+        move.l  clientfd,d0          ; liberar bsdsocket.library
+        jsr     -120(a6)
+        move.l  sockbase,a6
+        move.l  listenfd,d0
+        jsr     -120(a6)
+        move.l  4.w,a6
+        move.l  sockbase,a1
+        jsr     -414(a6)
+        bra.s   close_graphics
+sd_serial:
+        move.l  a2,a6               ; SER: cerrar el fichero
         move.l  d6,d1
         jsr     -36(a6)
 close_graphics:
@@ -300,40 +483,9 @@ close_dos:
         move.l  a2,a1
         jsr     -414(a6)
 quit_now:
+        move.l  stacksave,sp
         movem.l (sp)+,d2-d7/a2-a6
         moveq   #0,d0
-        rts
-
-; --- utilidades -------------------------------------------------------
-
-read_n_bytes:                       ; a5 = buffer, d5 = n
-        move.l  a2,a6
-readloop:
-        move.l  d6,d1
-        move.l  a5,d2
-        moveq   #1,d3
-        jsr     -42(a6)
-        tst.l   d0
-        ble     close_ser
-        addq.l  #1,a5
-        subq.l  #1,d5
-        bne.s   readloop
-        rts
-
-write_n_bytes:                      ; a5 = buffer, d5 = n
-        move.l  a2,a6
-        move.l  d6,d1
-        move.l  a5,d2
-        move.l  d5,d3
-        jsr     -48(a6)
-        rts
-
-xor_buf:                            ; a5 = buffer, d5 = n; acumula en d4
-xb_loop:
-        move.b  (a5)+,d3
-        eor.b   d3,d4
-        subq.l  #1,d5
-        bne.s   xb_loop
         rts
 
         SECTION data,DATA
@@ -347,12 +499,33 @@ intuitionname:
 graphicsname:
         dc.b    "graphics.library",0
         EVEN
+bsdname:
+        dc.b    "bsdsocket.library",0
+        EVEN
 sername:
         dc.b    "SER:",0
         EVEN
 
         SECTION bss,BSS
 
+stacksave:
+        ds.l    1
+transport:
+        ds.b    2                   ; 0 = SER:, 1 = TCP
+sockbase:
+        ds.l    1
+listenfd:
+        ds.l    1
+clientfd:
+        ds.l    1
+optval:
+        ds.l    1
+addrlen:
+        ds.l    1
+sockaddr:
+        ds.b    16                  ; sockaddr_in del bind
+acceptaddr:
+        ds.b    16                  ; sockaddr_in del peer aceptado
 opbyte:
         ds.b    2
 rwbuf:

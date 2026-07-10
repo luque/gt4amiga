@@ -132,11 +132,11 @@ GT4FSUAERunner >> deployProgram: aProgramFile [
 
 { #category : #'serial communication' }
 GT4FSUAERunner >> connectSerial [
-	"Connect to the FS-UAE serial port (TCP socket).
-	 Uses an explicit short timeout: Socket standardTimeout is too long
-	 (tens of seconds), which made connection attempts appear to hang
-	 when FS-UAE's listener wasn't ready yet. Retries a few times since
-	 FS-UAE may still be booting when this is first called.
+	"Connect to the monitor's TCP endpoint: FS-UAE's serial bridge on
+	 localhost, or a real Amiga's bsdsocket server across the network
+	 (configuration monitorHost). Uses an explicit short timeout: Socket
+	 standardTimeout is too long (tens of seconds). Retries a few times
+	 since FS-UAE may still be booting when this is first called.
 	 Checking isConnected (not just isNil) matters: a socket whose peer
 	 closed goes stale (visible as CLOSE-WAIT) but stays non-nil, so a
 	 pure isNil guard would keep reusing a dead connection forever."
@@ -147,7 +147,7 @@ GT4FSUAERunner >> connectSerial [
 	3 timesRepeat: [
 		[ serialSocket := Socket newTCP.
 		  serialSocket
-			connectTo: (NetNameResolver addressForName: '127.0.0.1')
+			connectTo: (NetNameResolver addressForName: configuration monitorHost)
 			port: configuration serialPort
 			waitForConnectionFor: 3.
 		  serialSocket isConnected ifTrue: [ ^ self ] ]

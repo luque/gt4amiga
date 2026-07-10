@@ -14,7 +14,9 @@ Deploy and launch once per FS-UAE session:
 	GT4AmigaMonitorClient default deploy.
 	"then, in the Amiga Shell: Run >NIL: GT4A:incoming/monitor"
 
-The monitor and the one-shot watcher/GT4FSUAERunner pipeline share the same single emulated serial port, so they are mutually exclusive at any given moment - do not run a one-shot snippet while the monitor is active.
+TRANSPORTS: the monitor auto-selects at startup between a TCP server on port 2345 via bsdsocket.library (real hardware with a TCP/IP stack, e.g. A500 + PiStorm/Emu68 + wifipi + Roadshow; point GT at it with GT4AmigaConfiguration default monitorHost: ''<ip-del-amiga>'') and SER: via dos.library (no stack present, e.g. Workbench 1.3 under FS-UAE, whose serial port FS-UAE bridges to localhost TCP - the default monitorHost). The wire protocol is byte-identical on both, so this client and every book example work unchanged. In TCP mode the monitor survives client disconnects (accept loop); bsdsocket LVOs verified against the canonical AmiTCP FD (socket -30, bind -36, listen -42, accept -48, send -66, recv -78, setsockopt -90, CloseSocket -120).
+
+The monitor and the one-shot watcher/GT4FSUAERunner pipeline share the same single emulated serial port, so they are mutually exclusive at any given moment - do not run a one-shot snippet while the monitor is active (FS-UAE/SER: mode only; irrelevant in TCP mode).
 
 PROTOCOL v2 - FRAMED (see amigaSource for the full commented 68k source). Every command travels as [$A5][opcode][payload][chk] where chk = XOR of opcode and payload; every response as [$5A][status][payload][chk] where chk = XOR of status and payload. status 0 = OK (executed); status 1 = NAK: bad checksum, NOTHING was executed, always safe to resend (even a CALL). The monitor''s main loop HUNTS the $A5 sync byte, so it self-realigns after any corrupted frame - no more wedged-mid-command monitors. Commands (opcode / payload -> OK-response payload):
 	READ  $52  [size][pad][addr(4)]                      -> size bytes
