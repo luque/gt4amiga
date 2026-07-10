@@ -242,14 +242,14 @@
 					"__type" : "time",
 					"time" : {
 						"__type" : "dateAndTime",
-						"dateAndTimeString" : "2026-07-10T17:41:34.91284+02:00"
+						"dateAndTimeString" : "2026-07-10T22:26:57.584449+02:00"
 					}
 				},
 				"uid" : {
 					"__type" : "uid",
 					"uidString" : "z6N8pskgQAC6T5JRXKU22g=="
 				},
-				"code" : "\"El círculo completo: un slider en GToolkit que mueve la línea del split\n en tiempo real. REGLA DE ORO: nada de E/S serie en el hilo de UI - el\n handler del slider solo ANOTA la línea deseada en una variable\n compartida, y un proceso trabajador en segundo plano hace los envíos.\n Así la UI nunca se bloquea aunque una escritura necesite reintentos, y\n los valores intermedios de un arrastre rápido se saltan solos (el\n trabajador siempre envía el último valor anotado). El trabajador se\n detiene solo cuando el slider sale de pantalla.\"\n| monitor clist target running apply moveThumb handler barWidth bar thumb |\nmonitor := GT4AmigaMonitorClient default.\nclist := Smalltalk at: #GT4ACopperList.\nbarWidth := 360.\ntarget := nil.\nrunning := true.\n\napply := [ :v | target := (60 + (((v max: 0) min: 1) * 160)) rounded ].\n\nthumb := BlElement new\n\tsize: 22 @ 22;\n\tgeometry: BlCircleGeometry new;\n\tbackground: Color white;\n\tborder: (BlBorder paint: Color gray width: 1);\n\tpreventMouseEvents;\n\tyourself.\n\nbar := BlElement new\n\tsize: barWidth @ 22;\n\tgeometry: (BlRoundedRectangleGeometry cornerRadius: 11);\n\tbackground: (Color r: 0.75 g: 0.78 b: 0.85);\n\taddChild: thumb;\n\tyourself.\n\nmoveThumb := [ :v | thumb relocate: ((((v max: 0) min: 1) * (barWidth - 22)) @ 0) ].\nmoveThumb value: 0.4.\n\nhandler := [ :evt | | v |\n\tv := (evt localPosition x - 11) / (barWidth - 22).\n\tmoveThumb value: v.\n\tapply value: v ].\nbar addEventHandlerOn: BlMouseDownEvent do: handler.\nbar addEventHandlerOn: BlDragEvent do: handler.\nbar addEventHandlerOn: BlElementRemovedFromSceneGraphEvent do: [ :e | running := false ].\n\n\"trabajador: un único proceso en segundo plano serializa los envíos\"\n[ | last mine |\n\tlast := -1.\n\t[ running ] whileTrue: [\n\t\tmine := target.\n\t\t(mine notNil and: [ mine ~= last ])\n\t\t\tifTrue: [\n\t\t\t\t(monitor writeMemoryAt: clist + 4 size: 2 value: (mine bitShift: 8) + 1)\n\t\t\t\t\tifTrue: [ last := mine ]\n\t\t\t\t\tifFalse: [ \"fallo: pausa antes de reintentar - sin\n\t\t\t\t\t\t esto, un fallo rápido degenera en un bucle\n\t\t\t\t\t\t caliente al 100% de CPU que congela la imagen\"\n\t\t\t\t\t\t(Delay forMilliseconds: 250) wait ] ]\n\t\t\tifFalse: [ (Delay forMilliseconds: 30) wait ] ] ] fork.\nbar"
+				"code" : "\"El círculo completo: un slider en GToolkit que mueve la línea del split\n en tiempo real. REGLA DE ORO: nada de E/S serie en el hilo de UI - el\n handler del slider solo ANOTA la línea deseada en una variable\n compartida, y un proceso trabajador en segundo plano hace los envíos.\n Así la UI nunca se bloquea, los valores intermedios de un arrastre\n rápido se saltan solos, y el trabajador se detiene cuando el slider\n sale de pantalla.\"\n| monitor clist target running apply moveThumb handler barWidth bar thumb |\nmonitor := GT4AmigaMonitorClient default.\nclist := Smalltalk at: #GT4ACopperList.\nbarWidth := 360.\ntarget := nil.\nrunning := true.\n\napply := [ :v | target := (60 + (((v max: 0) min: 1) * 160)) rounded ].\n\nthumb := BlElement new\n\tsize: 22 @ 22;\n\tgeometry: BlCircleGeometry new;\n\tbackground: Color white;\n\tborder: (BlBorder paint: Color gray width: 1);\n\tpreventMouseEvents;\n\tyourself.\n\nbar := BlElement new\n\tsize: barWidth @ 22;\n\tgeometry: (BlRoundedRectangleGeometry cornerRadius: 11);\n\tbackground: (Color r: 0.75 g: 0.78 b: 0.85);\n\taddChild: thumb;\n\tyourself.\n\nmoveThumb := [ :v | thumb relocate: ((((v max: 0) min: 1) * (barWidth - 22)) @ 0) ].\nmoveThumb value: 0.4.\n\nhandler := [ :evt | | v |\n\tv := (evt localPosition x - 11) / (barWidth - 22).\n\tmoveThumb value: v.\n\tapply value: v ].\nbar addEventHandlerOn: BlMouseDownEvent do: handler.\nbar addEventHandlerOn: BlDragEvent do: handler.\nbar addEventHandlerOn: BlElementRemovedFromSceneGraphEvent do: [ :e | running := false ].\n\n[ | last mine |\n\tlast := -1.\n\t[ running ] whileTrue: [\n\t\tmine := target.\n\t\t(mine notNil and: [ mine ~= last ])\n\t\t\tifTrue: [\n\t\t\t\t(monitor writeMemoryAt: clist + 4 size: 2 value: (mine bitShift: 8) + 1)\n\t\t\t\t\tifTrue: [ last := mine ]\n\t\t\t\t\tifFalse: [ (Delay forMilliseconds: 250) wait ] ]\n\t\t\tifFalse: [ (Delay forMilliseconds: 30) wait ] ] ] fork.\nbar"
 			},
 			{
 				"__type" : "textSnippet",
@@ -313,7 +313,7 @@
 					"__type" : "time",
 					"time" : {
 						"__type" : "dateAndTime",
-						"dateAndTimeString" : "2026-07-09T18:58:50.114473+02:00"
+						"dateAndTimeString" : "2026-07-10T22:27:11.911481+02:00"
 					}
 				},
 				"uid" : {
@@ -323,7 +323,7 @@
 				"paragraphStyle" : {
 					"__type" : "textStyle"
 				},
-				"string" : "Nota de fiabilidad (estado 2026-07-09): el diseño de este ejemplo está validado extremo a extremo (lista verificada por readback, instalación segura en dos words con el Copper parado, split visible, línea moviéndose en vivo). Sin embargo el transporte serie Pharo→FS-UAE tiene una anomalía conocida: ráfagas de 9+ bytes pueden perder su octavo byte de forma intermitente (nunca ocurre desde un cliente Python equivalente — es un efecto de fase contra el UART emulado, no del protocolo). El cliente lo mitiga espaciando los bytes 3ms (sendCommand:to:), y cada snippet de esta página verifica sus escrituras (readback o ack) precisamente por esto. El arreglo definitivo — enmarcar el protocolo del monitor con byte de sincronía, longitud y checksum para que una pérdida sea un error detectable y reintentable — está planificado; los detalles completos de la investigación están en el comentario de la clase GT4AmigaMonitorClient."
+				"string" : "Nota de fiabilidad (resuelto 2026-07-10): este ejemplo funciona de forma estable, pero llegar aquí dejó dos lecciones de transporte que merecen contarse. Primera: el serial.device del Amiga trae control de flujo XON/XOFF activado por defecto (herencia de los Preferences), y un protocolo binario acaba tarde o temprano conteniendo un byte $13 (XOFF) — por ejemplo, el checksum del frame que mueve el split a la línea 220 — que la capa serie consume y que además pausa la transmisión del Amiga: el monitor parecía \"morir\" exactamente en el extremo derecho del slider. El fix es de configuración, no de código: Prefs → Serial → Handshaking: None (persiste en el HDF). El transporte TCP para hardware real es inmune por naturaleza. Segunda: nada de E/S serie en el hilo de UI (ver el snippet del slider: variable compartida + proceso trabajador). El detalle completo de la investigación está en el comentario de la clase GT4AmigaMonitorClient."
 			}
 		]
 	},

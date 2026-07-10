@@ -112,6 +112,8 @@ cp amiga/s/* shared/s/
 
 `GT4A:` is the label FS-UAE gives to the `shared/` directory (mounted as DH1).
 
+> **One-time serial setup (required for the bridge server)**: AmigaOS ships with XON/XOFF software flow control enabled on `serial.device`. A binary protocol will sooner or later contain a `$13` (XOFF) byte — a checksum, a data value — which the serial layer silently consumes *and* pauses the Amiga's transmission, making the monitor appear to die at reproducible protocol values. Open **Preferences → Serial** on the Workbench, set **Handshaking: None**, and Save (persists in the HDF's `Devs:system-configuration`). The TCP transport used on real hardware is immune — this only affects the `SER:`/FS-UAE mode.
+
 > **Some Workbench images never call `S:User-Startup` at all.** Amiga Forever's Workbench 1.3.5 `Startup-Sequence`, for example, ends with `LoadWB` / `EndCLI` and has no `IF EXISTS S:User-Startup` / `EXECUTE S:User-Startup` / `ENDIF` hook — so step 2 above silently has no effect: the file is copied but never executed, and the watcher doesn't start after reboot. Check with `Type S:Startup-Sequence`; if that hook is missing, install the corrected version (which adds it right before `EndCLI`) instead:
 > ```
 > Copy GT4A:s/startup-sequence S:Startup-Sequence
