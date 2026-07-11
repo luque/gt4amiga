@@ -10,24 +10,24 @@ Class {
 { #category : #'class comment' }
 GT4AmigaMonitorClient comment: 'I am a Pharo-side client for gt4amiga-monitor, a resident AmigaDOS program that accepts a small binary protocol over SER: and lets you peek/poke memory and invoke AmigaOS library functions in real time, without the assemble->deploy->run cycle used by GT4AmigaAssembler/GT4FSUAERunner for one-shot programs.
 
-Deploy and launch once per FS-UAE session:
+The monitor is the ONLY resident Amiga-side program: S:User-Startup launches it at boot (Run GT4A:incoming/monitor, guarded by IF EXISTS - one-time HDF setup, see the README), and the one-shot assemble-and-run pipeline goes through it too (GT4FSUAERunner run: uses executeProgram; the old polling watcher script, its trigger file and the serial-capture path are retired). To update the monitor binary: deploy, then reboot the Amiga (after a Q nothing relaunches it without a reboot).
 	GT4AmigaMonitorClient default deploy.
-	"then, in the Amiga Shell: Run >NIL: GT4A:incoming/monitor"
 
 TRANSPORTS: the monitor auto-selects at startup between a TCP server on port 2345 via bsdsocket.library (real hardware with a TCP/IP stack, e.g. A500 + PiStorm/Emu68 + wifipi + Roadshow; point GT at it with GT4AmigaConfiguration default monitorHost: ''<ip-del-amiga>'') and SER: via dos.library (no stack present, e.g. Workbench 1.3 under FS-UAE, whose serial port FS-UAE bridges to localhost TCP - the default monitorHost). The wire protocol is byte-identical on both, so this client and every book example work unchanged. In TCP mode the monitor survives client disconnects (accept loop); bsdsocket LVOs verified against the canonical AmiTCP FD (socket -30, bind -36, listen -42, accept -48, send -66, recv -78, setsockopt -90, CloseSocket -120).
-
-The monitor and the one-shot watcher/GT4FSUAERunner pipeline share the same single emulated serial port, so they are mutually exclusive at any given moment - do not run a one-shot snippet while the monitor is active (FS-UAE/SER: mode only; irrelevant in TCP mode).
 
 PROTOCOL v2 - FRAMED (see amigaSource for the full commented 68k source). Every command travels as [$A5][opcode][payload][chk] where chk = XOR of opcode and payload; every response as [$5A][status][payload][chk] where chk = XOR of status and payload. status 0 = OK (executed); status 1 = NAK: bad checksum, NOTHING was executed, always safe to resend (even a CALL). The monitor''s main loop HUNTS the $A5 sync byte, so it self-realigns after any corrupted frame - no more wedged-mid-command monitors. Commands (opcode / payload -> OK-response payload):
 	READ  $52  [size][pad][addr(4)]                      -> size bytes
 	WRITE $57  [size][pad][addr(4)][data x size]         -> (empty)
 	CALL  $43  [libIndex][pad][lvo(2)][a0..a1(4 each)][d0..d3(4 each)] -> d0 (4 bytes)
 	GET SCREEN $53  (no payload)                         -> IntuitionBase->FirstScreen (4 bytes)
+	EXEC  $58  (no payload)                              -> execution-mailbox address (4 bytes), or 0 if nothing was launched
 	QUIT  $51  (no payload)                              -> (empty), monitor exits
+
+EXEC ($58, executeProgram) loads GT4A:incoming/program with LoadSeg and launches it as a SEPARATE PROCESS via dos.library CreateProc (V34 - present on Kickstart 1.3; autodoc verified, no version tag), so the monitor keeps answering R/W/C while the program runs - live inspection of a running program. A stub inside the child process opens GT4A:outgoing/output and installs it as its own pr_COS (offset 160, verified against dosextens.i) before jumping to the program, because a CreateProc''d process has no CLI context and Output() would return 0 - book examples keep using Output()/Write() unchanged. The stub relies on the program preserving d2-d7/a2-a6, the same convention the old watcher''s Execute already required. Completion is polled by the host (Kickstart 1.3 has no process-death notification): mailbox +0 byte state (0 never-run, 1 running, 2 done, 3 launch error), +4 long return code. Caveats: do NOT quit the monitor while state=1 (the child executes code that lives inside the monitor''s seglist, which the CLI frees when the monitor exits); a hardware-takeover program (Forbid/Disable, DMA off) freezes the monitor too for the takeover window - no interrupts means no SER:/TCP service - and the framed protocol recovers afterwards; a crashed program leaves state=1 forever - reset by writing 0 to the state byte, or reboot.
 
 libIndex for CALL: 0=exec 1=dos.library 2=intuition.library 3=graphics.library (bases opened once at monitor startup).
 
-This client is deliberately kept generic - it exposes only the four raw protocol operations above (readMemoryAt:size:, writeMemoryAt:size:value:, callLibrary:lvo:a0:a1:d0:d1:d2:d3:, workbenchScreenPointer), not one convenience method per example (no setColor:, no moveScreenBy:, etc). Worked examples (which LVO, which registers, why it works or doesn''t) belong as explained snippets in a Lepiter book page, composing these primitives - that is more didactic for a book about programming the Amiga than hiding the details behind named methods here.
+This client is deliberately kept generic - it exposes only the raw protocol operations above (readMemoryAt:size:, writeMemoryAt:size:value:, callLibrary:lvo:a0:a1:d0:d1:d2:d3:, workbenchScreenPointer, executeProgram plus its waitForProgramAt:timeout:/capturedOutput companions), not one convenience method per example (no setColor:, no moveScreenBy:, etc). Worked examples (which LVO, which registers, why it works or doesn''t) belong as explained snippets in a Lepiter book page, composing these primitives - that is more didactic for a book about programming the Amiga than hiding the details behind named methods here.
 
 STATUS (2026-07-09): ALL FOUR primitives verified working end-to-end - including CALL into intuition.library (MoveScreen, screen visibly moved and restored) and graphics.library (SetRGB4, background red and back), and a write-then-readback memory test. The "systemic crash" previously documented here is RESOLVED: it was three distinct 68k register-hygiene bugs in gt4amiga-monitor.s, found by probing the protocol directly over TCP with a Python script (see Debugging notes below):
 
@@ -232,10 +232,10 @@ GT4AmigaMonitorClient >> sendFrame: opcode payload: payload expect: expectedLen 
 
 { #category : #'deploying' }
 GT4AmigaMonitorClient >> deploy [
-	"Assemble amigaSource and copy it to shared/incoming/monitor,
-	 separate from the deployProgram:/trigger mechanism GT4FSUAERunner
-	 uses for one-shot programs (the monitor is launched manually via
-	 Run >NIL: GT4A:incoming/monitor and stays resident)."
+	"Assemble amigaSource and copy it to shared/incoming/monitor, the
+	 path S:User-Startup launches at boot (Run >NIL: GT4A:incoming/monitor).
+	 A running monitor is NOT replaced: deploy, then reboot the Amiga to
+	 pick up the new binary."
 	| result monitorFile |
 	result := GT4AmigaAssembler new assemble: self class amigaSource.
 	result success ifFalse: [ ^ result ].
@@ -243,6 +243,54 @@ GT4AmigaMonitorClient >> deploy [
 	monitorFile exists ifTrue: [ monitorFile delete ].
 	result outputFile copyTo: monitorFile.
 	^ result
+]
+
+{ #category : #'protocol' }
+GT4AmigaMonitorClient >> capturedOutput [
+	"Contents of the capture file the exec stub redirects the launched
+	 program's Output() to (GT4A:outgoing/output on the Amiga side =
+	 shared/outgoing/output host-side). Valid once the mailbox state is 2.
+	 FS-UAE mode only: on real hardware GT4A: does not exist and the file
+	 will have to travel over the protocol instead (roadmap)."
+	| file |
+	file := GT4AmigaConfiguration default sharedDirectory / 'outgoing' / 'output'.
+	^ file exists ifTrue: [ file contents ] ifFalse: [ nil ]
+]
+
+{ #category : #'protocol' }
+GT4AmigaMonitorClient >> executeProgram [
+	"Opcode X: ask the monitor to LoadSeg GT4A:incoming/program and launch
+	 it as a separate process (CreateProc), so every other primitive keeps
+	 working while it runs. Answers the address of the monitor's execution
+	 mailbox, or nil when nothing was launched (a previous program is
+	 still running, or LoadSeg/CreateProc failed - the monitor answers a
+	 payload of 0 in both cases). NAKs are retried as always (nothing was
+	 executed); silence is NOT (launching is not idempotent).
+	 Poll the mailbox with readMemoryAt:size: - +0 byte state (1 running,
+	 2 done, 3 launch error), +4 long return code - or use
+	 waitForProgramAt:timeout:, then read capturedOutput."
+	| resp addr |
+	resp := self sendFrame: 88 payload: #[] expect: 4 retryOnSilence: false.
+	resp ifNil: [ ^ nil ].
+	addr := self bytesToLong: resp.
+	^ addr = 0 ifTrue: [ nil ] ifFalse: [ addr ]
+]
+
+{ #category : #'protocol' }
+GT4AmigaMonitorClient >> waitForProgramAt: mailboxAddress timeout: aDuration [
+	"Poll the execution mailbox of a program launched with executeProgram
+	 until it finishes. Answers the program's return code (its final d0),
+	 or nil on launch error or timeout. Polls over the same R primitive as
+	 any other read, so never call this on the Bloc UI thread (class
+	 comment rule: no serial I/O on the UI thread)."
+	| deadline state |
+	deadline := DateAndTime now + aDuration.
+	[ DateAndTime now < deadline ] whileTrue: [
+		state := self readMemoryAt: mailboxAddress size: 1.
+		state = 2 ifTrue: [ ^ self readMemoryAt: mailboxAddress + 4 size: 4 ].
+		state = 3 ifTrue: [ ^ nil ].
+		(Delay forMilliseconds: 200) wait ].
+	^ nil
 ]
 
 { #category : #'protocol' }

@@ -96,38 +96,59 @@ GT4FSUAERunner >> isRunning [
 
 { #category : #running }
 GT4FSUAERunner >> run: anAssemblyResult [
-	"Deploy the assembled program and trigger execution on the Amiga.
-	 Returns the captured serial output (stdout from the Amiga program)."
-	| outputText |
+	"Deploy the assembled program and execute it through the resident
+	 monitor (opcode X): the program runs as its own AmigaDOS process with
+	 Output() captured to shared/outgoing/output, whose contents are
+	 returned here. The monitor is the only resident Amiga-side program -
+	 the polling watcher script, its trigger file, the done marker and the
+	 raw serial capture are all retired. The monitor is launched at boot
+	 by S:User-Startup (one-time HDF setup, see the README)."
+	| monitor mailbox |
 	anAssemblyResult success ifFalse: [
 		^ 'Assembly failed - cannot run: ' , anAssemblyResult stderr ].
 	self isRunning ifFalse: [ self launch ].
+	(self waitForMonitorTimeout: 90) ifFalse: [
+		^ 'Monitor not responding. Is it installed? (S:User-Startup must Run GT4A:incoming/monitor - see the README)' ].
 	self deployProgram: anAssemblyResult outputFile.
-	outputText := self captureOutputWithTimeout: 60.
-	^ outputText
+	monitor := (Smalltalk at: #GT4AmigaMonitorClient) default.
+	mailbox := monitor executeProgram.
+	mailbox ifNil: [
+		^ 'Monitor did not launch the program (a previous program may still be running, or LoadSeg failed)' ].
+	(monitor waitForProgramAt: mailbox timeout: 60 seconds) ifNil: [
+		^ 'Program did not finish within 60 seconds (or failed to launch - poll the mailbox for details)' ].
+	^ (monitor capturedOutput ifNil: [ '' ]) trimmed
+]
+
+{ #category : #running }
+GT4FSUAERunner >> waitForMonitorTimeout: seconds [
+	"Answer true once the resident monitor responds. After launch the
+	 Amiga needs tens of seconds to boot to the point where S:User-Startup
+	 runs it, so the first ping of a session can take a while: keep
+	 pinging (workbenchScreenPointer is idempotent and side-effect free)
+	 until the deadline. GT4AmigaMonitorClient is looked up by name: the
+	 Bridge package loads after this one (it requires GT4Amiga-FSUAE), so
+	 a direct reference here would be undeclared at load time."
+	| deadline |
+	deadline := DateAndTime now + (Duration seconds: seconds).
+	[ DateAndTime now < deadline ] whileTrue: [
+		(Smalltalk at: #GT4AmigaMonitorClient) default workbenchScreenPointer
+			ifNotNil: [ ^ true ].
+		(Delay forSeconds: 2) wait ].
+	^ false
 ]
 
 { #category : #running }
 GT4FSUAERunner >> deployProgram: aProgramFile [
-	"Copy the program to the shared directory and write the trigger file.
-	 The AmigaDOS watcher script detects the trigger and runs the program."
-	| incoming program trigger |
+	"Copy the program to shared/incoming/program, where the monitor's X
+	 opcode (LoadSeg GT4A:incoming/program) expects it. Clears the previous
+	 captured output so a stale file can never be mistaken for this run's."
+	| incoming output |
 	incoming := configuration sharedDirectory / 'incoming'.
 	incoming ensureCreateDirectory.
-
-	"Remove any previous run artifacts"
-	(incoming / 'trigger') exists ifTrue: [ (incoming / 'trigger') delete ].
 	(incoming / 'program') exists ifTrue: [ (incoming / 'program') delete ].
-	(configuration sharedDirectory / 'outgoing' / 'output.txt') exists
-		ifTrue: [ (configuration sharedDirectory / 'outgoing' / 'output.txt') delete ].
-
-	"Copy the new program"
-	program := incoming / 'program'.
-	aProgramFile copyTo: program.
-
-	"Write the trigger last (the watcher polls for this)"
-	trigger := incoming / 'trigger'.
-	trigger writeStreamDo: [ :s | s nextPutAll: 'run' ]
+	output := configuration sharedDirectory / 'outgoing' / 'output'.
+	output exists ifTrue: [ output delete ].
+	aProgramFile copyTo: incoming / 'program'
 ]
 
 { #category : #'serial communication' }
@@ -161,40 +182,6 @@ GT4FSUAERunner >> disconnectSerial [
 	serialSocket isNil ifTrue: [ ^ self ].
 	[ serialSocket close ] on: Error do: [ :e | ].
 	serialSocket := nil
-]
-
-{ #category : #'serial communication' }
-GT4FSUAERunner >> captureOutputWithTimeout: seconds [
-	"Read from the serial TCP socket until the <<GT4A-DONE>> marker or timeout.
-	 The watcher script sends this marker after the program finishes."
-	| deadline result chunk |
-	self connectSerial.
-	serialSocket isNil ifTrue: [ ^ '' ].
-	deadline := DateAndTime now + (Duration seconds: seconds).
-	result := String new writeStream.
-	[
-		DateAndTime now < deadline and: [
-			(result contents includesSubstring: '<<GT4A-DONE>>') not ]
-	] whileTrue: [
-		serialSocket isConnected ifFalse: [ ^ result contents ].
-		chunk := self readAvailableFromSerial.
-		chunk isEmpty ifFalse: [ result nextPutAll: chunk ].
-		chunk isEmpty ifTrue: [ (Delay forMilliseconds: 100) wait ]
-	].
-	^ (result contents copyReplaceAll: '<<GT4A-DONE>>' with: '') trimmed
-]
-
-{ #category : #'serial communication' }
-GT4FSUAERunner >> readAvailableFromSerial [
-	"Non-blocking-ish read of whatever is available on the serial socket.
-	 NOTE: receiveDataTimeout: takes SECONDS (see waitForDataFor:), not
-	 milliseconds - the previous value of 100 here meant a quiet socket
-	 blocked each poll for 100 seconds, far beyond captureOutputWithTimeout:'s
-	 own deadline."
-	| bytes |
-	[ bytes := serialSocket receiveDataTimeout: 1 ]
-		on: Error do: [ :e | ^ '' ].
-	^ bytes ifNil: [ '' ] ifNotNil: [ :b | b asString ]
 ]
 
 { #category : #'private - setup' }

@@ -40,6 +40,16 @@
 ;   C $43  [lib][pad][lvo.w][a0.l][a1.l][d0.l][d1.l][d2.l][d3.l]
 ;                                         -> payload = d0 tras la llamada
 ;   S $53  (sin payload)                  -> payload = IntuitionBase->FirstScreen
+;   X $58  (sin payload)                  -> payload = direccion del mailbox
+;          de ejecucion, o 0 si no se lanzo nada (ya hay un programa en
+;          marcha, o LoadSeg/CreateProc fallo). Carga GT4A:incoming/program
+;          y lo lanza como PROCESO SEPARADO (CreateProc, dos V34): el
+;          monitor sigue atendiendo R/W/C mientras el programa corre.
+;          La salida del programa (Output/Write) va al fichero
+;          GT4A:outgoing/output. Mailbox: [estado.b][pad(3)][rc.l]
+;          estado: 0 nunca, 1 corriendo, 2 terminado, 3 error de lanzam.
+;          NO enviar Q con estado=1: el hijo ejecuta codigo del seglist
+;          del monitor y el CLI lo libera cuando el monitor termina.
 ;   Q $51  (sin payload)                  -> payload vacio; el monitor termina
 ;
 ; DISCIPLINA DE PILA: los saltos de error (p.ej. Read/recv fallido)
@@ -52,7 +62,12 @@
         SECTION code,CODE
 
 MODE_OLDFILE equ 1005
+MODE_NEWFILE equ 1006
 TCP_PORT     equ 2345
+EXEC_STACK   equ 4096               ; pila del proceso hijo (multiplo de 4)
+PR_COS       equ 160                ; offset de pr_COS en struct Process
+                                    ; (dosextens.i: TC_SIZE=92 + MP_SIZE=34
+                                    ;  + pad.w + 8 campos.l = 160)
 
 start:
         movem.l d2-d7/a2-a6,-(sp)
@@ -183,6 +198,8 @@ hunt:
         beq     do_call
         cmp.b   #$53,d7
         beq     do_getscreen
+        cmp.b   #$58,d7
+        beq     do_exec
         cmp.b   #$51,d7
         beq     do_quit
         bra     hunt                ; opcode desconocido tras $A5: realinear
@@ -327,6 +344,128 @@ have_base:
         move.l  d0,respdata
         moveq   #4,d5
         bra     send_ok
+
+do_exec:
+        lea     rwbuf,a5            ; solo el byte de checksum
+        moveq   #1,d5
+        bsr     read_n_bytes
+        cmp.b   rwbuf,d7            ; chk = XOR(opcode) = opcode
+        bne     send_nak
+        cmp.b   #1,exec_state       ; ya hay un programa corriendo?
+        beq     ex_fail
+        move.l  a2,a6               ; LoadSeg("GT4A:incoming/program")
+        move.l  #progname,d1
+        jsr     -150(a6)
+        tst.l   d0
+        beq     ex_fail
+        move.l  d0,exec_seglist
+        lsl.l   #2,d0               ; entrada = (BPTR a seglist)<<2 + 4
+        addq.l  #4,d0                ; (salta el puntero al hunk siguiente)
+        move.l  d0,exec_entry
+        clr.l   exec_rc
+        move.b  #1,exec_state       ; corriendo: ANTES de CreateProc (el
+                                     ; hijo puede terminar y escribir 2
+                                     ; antes de que volvamos aqui)
+        move.l  a2,a6               ; CreateProc(nombre, pri=0, stub, pila)
+        move.l  #procname,d1
+        moveq   #0,d2
+        lea     stubseg_next,a0     ; BPTR al fake seglist del stub (el
+        move.l  a0,d3                ; patron oficial del autodoc: dc.l 16
+        lsr.l   #2,d3                ; + dc.l 0 + codigo; nunca UnLoadSeg)
+        move.l  #EXEC_STACK,d4
+        jsr     -138(a6)
+        tst.l   d0
+        beq.s   ex_createfail
+        move.l  #exec_mb,respdata   ; payload = direccion del mailbox,
+        moveq   #4,d5                ; que el host sondea con R
+        bra     send_ok
+ex_createfail:
+        move.l  a2,a6
+        move.l  exec_seglist,d1
+        jsr     -156(a6)            ; UnLoadSeg
+        move.b  #3,exec_state
+ex_fail:
+        clr.l   respdata            ; payload = 0: no se lanzo nada
+        moveq   #4,d5
+        bra     send_ok
+
+; --- stub del proceso hijo (lanzado por CreateProc desde do_exec) ------
+;
+; Corre como proceso independiente, compartiendo el espacio de
+; direcciones del monitor (referencias absolutas via reloc normal).
+; Un proceso de CreateProc no tiene contexto CLI: Output() devolveria 0
+; y el Write del programa iria a una direccion basura. El stub abre el
+; fichero de captura y lo instala como SU PROPIO pr_COS antes de saltar
+; al programa, asi los ejemplos del libro usan Output()/Write() sin
+; cambios. Cuenta con la convencion ya documentada: el programa preserva
+; d2-d7/a2-a6 (aqui: a5=DOSBase, d5=fichero de captura).
+
+        CNOP    0,4
+stubseg_len:
+        dc.l    16                  ; longitud fingida del segmento
+stubseg_next:
+        dc.l    0                   ; sin segmento siguiente
+stub_entry:                         ; CreateProc entra aqui: (BPTR<<2)+4
+        move.l  4.w,a6              ; el hijo abre SU dos.library
+        lea     dosname,a1
+        moveq   #0,d0
+        jsr     -552(a6)
+        tst.l   d0
+        beq     stub_nodos
+        move.l  d0,a5
+
+        move.l  a5,a6               ; Open(fich. captura, MODE_NEWFILE)
+        move.l  #outname,d1
+        move.l  #MODE_NEWFILE,d2
+        jsr     -30(a6)
+        move.l  d0,d5
+        beq     stub_noout
+
+        move.l  4.w,a6              ; FindTask(0) = nuestro proceso
+        suba.l  a1,a1
+        jsr     -294(a6)
+        move.l  d0,a0
+        move.l  d5,PR_COS(a0)       ; pr_COS = fichero: Output() del
+                                     ; programa apunta a la captura
+        move.l  exec_entry,a1
+        lea     stub_nl,a0          ; convencion CLI: a0 = linea de
+        moveq   #1,d0                ; comandos, d0 = longitud ("\n")
+        jsr     (a1)
+        move.l  d0,exec_rc          ; codigo de retorno del programa
+
+        move.l  4.w,a6              ; pr_COS = 0 antes de cerrar el
+        suba.l  a1,a1                ; fichero (nada debe usarlo ya)
+        jsr     -294(a6)
+        move.l  d0,a0
+        clr.l   PR_COS(a0)
+        move.l  a5,a6               ; Close: vuelca la captura a disco
+        move.l  d5,d1
+        jsr     -36(a6)
+
+        move.l  a5,a6               ; el programa ya no ejecuta: liberar
+        move.l  exec_seglist,d1      ; su seglist (CreateProc no lo hace)
+        jsr     -156(a6)
+        clr.l   exec_seglist
+
+        move.l  4.w,a6
+        move.l  a5,a1
+        jsr     -414(a6)            ; CloseLibrary(dos)
+        move.b  #2,exec_state       ; terminado: SIEMPRE lo ultimo (rc y
+        moveq   #0,d0                ; fichero completos al leer estado=2)
+        rts
+
+stub_noout:
+        move.l  a5,a6               ; sin captura no se ejecuta nada:
+        move.l  exec_seglist,d1      ; Write(Output()=0,...) del programa
+        jsr     -156(a6)             ; seria un crash seguro
+        clr.l   exec_seglist
+        move.l  4.w,a6
+        move.l  a5,a1
+        jsr     -414(a6)
+stub_nodos:
+        move.b  #3,exec_state       ; error de lanzamiento
+        moveq   #0,d0
+        rts
 
 do_quit:
         lea     rwbuf,a5
@@ -505,6 +644,18 @@ bsdname:
 sername:
         dc.b    "SER:",0
         EVEN
+progname:
+        dc.b    "GT4A:incoming/program",0
+        EVEN
+outname:
+        dc.b    "GT4A:outgoing/output",0
+        EVEN
+procname:
+        dc.b    "gt4amiga-exec",0
+        EVEN
+stub_nl:
+        dc.b    10
+        EVEN
 
         SECTION bss,BSS
 
@@ -538,3 +689,13 @@ respbuf:
         ds.b    2                   ; [sync][status] - respdata debe ir
 respdata:                            ; CONTIGUO justo despues
         ds.b    6                   ; payload max 4 + chk, redondeado a par
+exec_mb:                            ; mailbox de ejecucion (opcode X);
+exec_state:                          ; el host lo sondea via R
+        ds.b    1                   ; 0 nunca, 1 corriendo, 2 fin, 3 error
+        ds.b    3                   ; pad: exec_rc alineado a longword
+exec_rc:
+        ds.l    1                   ; d0 del programa (valido con estado 2)
+exec_seglist:
+        ds.l    1                   ; BPTR del seglist cargado
+exec_entry:
+        ds.l    1                   ; APTR de entrada para el stub
