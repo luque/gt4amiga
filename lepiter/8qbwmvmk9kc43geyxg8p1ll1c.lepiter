@@ -174,14 +174,14 @@
 					"__type" : "time",
 					"time" : {
 						"__type" : "dateAndTime",
-						"dateAndTimeString" : "2026-07-11T23:08:06.153953+02:00"
+						"dateAndTimeString" : "2026-07-11T23:26:04.97024+02:00"
 					}
 				},
 				"uid" : {
 					"__type" : "uid",
 					"uidString" : "XwcVlWTkRyCv9gyvQhWK/g=="
 				},
-				"code" : "\"La paleta real de Workbench via GetRGB4: azul $05A, blanco $FFF, negro $002, naranja $F80\"\n| c screen cmap |\nc := GT4AmigaMonitorClient default.\nscreen := c workbenchScreenPointer.\ncmap := c readMemoryAt: screen + 48 size: 4.\n(0 to: 3) collect: [ :i |\n\t| rgb4 |\n\trgb4 := c callLibrary: 3 lvo: -582 a0: cmap a1: 0 d0: i d1: 0 d2: 0 d3: 0.\n\ti -> ('$' , (rgb4 printString: 16)) ]"
+				"code" : "\"La paleta real de Workbench via GetRGB4: azul $05A, blanco $FFF, negro $002, naranja $F80\"\n| c screen cmap |\nc := GT4AmigaMonitorClient default.\nscreen := c workbenchScreenPointer.\ncmap := c readMemoryAt: screen + 48 size: 4.\n(0 to: 3) collect: [ :i |\n\t| rgb4 |\n\trgb4 := c callLibrary: 3 lvo: -582 a0: cmap a1: 0 d0: i d1: 0 d2: 0 d3: 0.\n\ti -> ('$' , (rgb4 printPaddedWith: $0 to: 3 base: 16)) ]"
 			},
 			{
 				"__type" : "textSnippet",
