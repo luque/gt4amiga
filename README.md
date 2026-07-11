@@ -279,7 +279,7 @@ GT4FSUAERunner default run: result.
 - [x] Framed monitor protocol (v2): sync byte `$A5` + XOR checksum + NAK/retry semantics, so serial byte loss is a detectable, retryable error instead of silent memory corruption; the monitor re-syncs itself after any corrupt frame
 - [x] Monitor transport abstraction: TCP server via `bsdsocket.library` (real hardware over the network) with `SER:` fallback (FS-UAE), auto-selected at startup; stack discipline fixed so link-loss exits are clean from any call depth
 
-### Next: one resident program (monitor absorbs the watcher)
+### Done: one resident program (monitor absorbs the watcher)
 
 Goal: the monitor becomes the *only* resident program on the Amiga side, replacing the polling watcher script. This removes the SER: contention between watcher and monitor, the 1-second trigger-polling latency, and the trigger/done-marker race — and the one-shot run pipeline inherits the framed protocol's checksum/retry reliability for free. It also works unchanged over the TCP transport on real hardware, where the watcher's `>SER:` redirect does not exist.
 
@@ -292,15 +292,33 @@ Goal: the monitor becomes the *only* resident program on the Amiga side, replaci
 - [x] Auto-start the monitor at boot: `user-startup` now launches the monitor (guarded by `IF EXISTS`, so a fresh checkout without a deployed binary boots cleanly). The `S:User-Startup` inside the existing HDF was rewritten *by a program executed through opcode `X` itself* — no Amiga Shell typing involved. **Verified (2026-07-11)**: cold boot from the updated HDF auto-started the monitor and `GT4FSUAERunner run:` returned a program's output end-to-end with no watcher anywhere.
 - [x] Document the wire protocol in this README (frame layout, opcode table with payloads, NAK/retry semantics, idempotency rules, resynchronisation) — see "Monitor wire protocol (v2, framed)" above; implementation detail stays in the `GT4AmigaMonitorClient` class comment and the monitor source.
 
+### Next: Interactive Hardware Reference (the AHRM as a living book)
+
+Goal: rebuild the *subject matter* of the Amiga Hardware Reference Manual as an interactive book — clear step-by-step explanations, **live figures** (diagrams drawn from the machine's actual state, not static images), and examples with immediate feedback on the Amiga. The approach is GT-native moldability: invest in **model objects with multiple `gtViews`** that both *reflect* and *act on* custom-chip state through the monitor, and keep snippets thin — a page embeds an inspector on a model object rather than needing one bespoke snippet type per concept. In GT, drill-down comes for free: a click in a view that returns a sub-model opens it in the next Miller column. (The AHRM's text is copyrighted: its chapter structure and register tables serve as skeleton and reference data, but explanations and figures are written from scratch — and the figures come out *better*, because they are alive.)
+
+Infrastructure first:
+
+- [ ] Block-transfer opcodes in the monitor (bulk read/write with a 16-bit length): `R`/`W` move 1/2/4 bytes inside an ~11-byte frame, far too slow for copper lists, sprite images or a 40 KB framebuffer. This gates every visualization below.
+- [ ] `GT4Amiga-Hardware` model package, founded on the chip register + bit-field model (encode the AHRM register tables as objects: name, address, R/W/strobe semantics, decoded fields). Each register knows *how its current value is knowable* — readable, shadowed last-write, or derived from the OS copper list — because most chip registers are write-only. First payoffs: a live register inspector (decoded fields, click-to-toggle writable bits) and a DMACON/INTENA control panel.
+- [ ] `GT4AmigaMachine` root model + the global views: a clickable block diagram (68000, Agnus, Denise, Paula, CIAs, chip/slow/fast RAM, buses — DMACON bits light up the bus arrows) and a memory map (regions → memory-range models with hexdump/bitmap/copper-disassembly views). Two decompositions of the same machine as alternate views: physical (which chip owns what) and functional (Copper, Playfield, Sprites, Blitter, Audio — the book's chapters). The centerpiece live figure: the AHRM's DMA time-slot-per-scanline diagram, parameterized by the real BPLCON0/DMACON state. Live chip/fast free-memory gauges via `C` to `exec/AvailMem`.
+- [ ] One generic "live hardware" snippet type (evaluates to a model object, embeds its refreshing inspector) plus one background observer process per page that polls the addresses visible views need and publishes announcements — no per-view polling loops, no serial I/O on the UI thread.
+- [ ] Chip-state snapshot/restore so every example cleans up after itself and the book is re-runnable top to bottom.
+
+Then one concept at a time, each = model + views + book chapter:
+
+- [ ] **Copper**: `CopperList` model (assemble/disassemble MOVE/WAIT/SKIP ↔ words), raster-timeline view (WAITs placed on a frame strip, draggable), and disassembly of Workbench's own list from `GfxBase->LOFlist` — which also finally gives the software restore after a Copper takeover (`LOFlist` → `COP1LC`) instead of rebooting.
+- [ ] **Playfield / bitplanes**: framebuffer viewer — read BPLxPT planes + palette over block transfer, compose in Pharo, render "what the Amiga sees" inside the notebook; modulo and BPLCON1 scroll interactives, dual-playfield priorities.
+- [ ] **Sprites**: pixel editor in GT (16×N, 2bpp) writing sprite data to chip RAM live — draw in the notebook, watch it float over Workbench; drag positioning, decoded VSTART/HSTART/attach.
+- [ ] **Blitter**: minterm truth-table builder (pick A/B/C combinations → LF byte), before/after memory-as-bitmap views around a live blit, `OwnBlitter`/`DisownBlitter` discipline as the sharing lesson.
+- [ ] **Paula / audio**: waveform editor → chip RAM, period/volume sliders — immediate feedback you can *hear*.
+
 ### Later
 
-- [ ] Software restore after a Copper takeover (`GfxBase->LOFlist` → `COP1LC`) instead of rebooting
 - [ ] Test the TCP transport on real hardware (A500 + PiStorm/Emu68 + WiFi)
 - [ ] Monitor resilience on `SER:`: reopen the port after a read error instead of exiting (the TCP transport already survives client loss via its accept loop)
 - [ ] Syntax highlighting for 68000 assembly in the snippet editor
 - [ ] Bare-metal mode: bootable ADF generation for hardware-direct demos
 - [ ] Real hardware target via [A314](https://github.com/niklasekstrom/a314)
-- [ ] Copper list visualiser and custom-chip register reference
 
 ## License
 
