@@ -1,0 +1,397 @@
+{
+	"__schema" : "4.1",
+	"__type" : "page",
+	"children" : {
+		"__type" : "snippets",
+		"items" : [
+			{
+				"__type" : "textSnippet",
+				"children" : {
+					"__type" : "snippets",
+					"items" : [ ]
+				},
+				"createEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"createTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-11T23:07:22.87826+02:00"
+					}
+				},
+				"editEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"editTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-11T23:07:22.87826+02:00"
+					}
+				},
+				"uid" : {
+					"__type" : "uid",
+					"uidString" : "67jl7u1zToWzDjzhGLFEog=="
+				},
+				"paragraphStyle" : {
+					"__type" : "textStyle"
+				},
+				"string" : "Los comandos R y W del monitor mueven 1, 2 o 4 bytes dentro de una trama de ~11 bytes. Para tocar un registro es perfecto; para mover datos de verdad es inviable: leer los bitplanes de la pantalla de Workbench (40 KB) costaría diez mil round-trips. Por eso el protocolo tiene dos comandos de bloque: B (block read, payload [addr.l][len.w] → len bytes) y P (block put, payload [addr.l][len.w][datos]). Ambos viajan enmarcados como todo lo demás: el monitor copia la región a un buffer interno — los datos y su checksum salen de la misma foto coherente — y en las escrituras solo copia al destino después de verificar el checksum, así que un NAK sigue garantizando que no se ejecutó nada. Cada trama transporta hasta 4096 bytes; el cliente trocea cantidades mayores de forma transparente. Un aviso: B y P copian byte a byte, perfecto para RAM (framebuffers, copper lists, sprites) pero prohibido para los registros custom, que exigen accesos de word — para ellos siguen los R y W de siempre."
+			},
+			{
+				"__type" : "textSnippet",
+				"children" : {
+					"__type" : "snippets",
+					"items" : [ ]
+				},
+				"createEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"createTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-11T23:07:35.543531+02:00"
+					}
+				},
+				"editEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"editTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-11T23:07:35.543531+02:00"
+					}
+				},
+				"uid" : {
+					"__type" : "uid",
+					"uidString" : "ersp3UXXRlG3+rzZ+U4KOA=="
+				},
+				"paragraphStyle" : {
+					"__type" : "textStyle"
+				},
+				"string" : "La demo: vamos a traer la pantalla real del Amiga a esta página. Primero hay que encontrarla. Intuition guarda sus pantallas como una lista enlazada cuyo primer eslabón ya sabemos leer (IntuitionBase→FirstScreen, el comando S). Dentro de la estructura Screen, tras el ViewPort (offset 44, tamaño 40) y el RastPort (tamaño 100), vive un BitMap embebido en el offset 184 — offsets verificados contra intuition/screens.i, graphics/view.i y graphics/rastport.i del NDK. El BitMap nos da la geometría y, sobre todo, los punteros a los planos: BytesPerRow (+0), Rows (+2), Depth (+5) y Planes[8] (+8). Workbench 1.3 es 640×256 con 2 planos: 80 bytes por fila, 20480 bytes por plano."
+			},
+			{
+				"__type" : "pharoSnippet",
+				"children" : {
+					"__type" : "snippets",
+					"items" : [ ]
+				},
+				"createEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"createTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-11T23:07:46.531637+02:00"
+					}
+				},
+				"editEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"editTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-11T23:07:46.531637+02:00"
+					}
+				},
+				"uid" : {
+					"__type" : "uid",
+					"uidString" : "r9QnXwEgQlmZBwMay3QImQ=="
+				},
+				"code" : "\"Navegar Screen -> BitMap con lecturas pequeñas (R): geometría y planos\"\n| c screen |\nc := GT4AmigaMonitorClient default.\nscreen := c workbenchScreenPointer.\n{ 'screen' -> screen.\n  'bytesPerRow' -> (c readMemoryAt: screen + 184 size: 2).\n  'rows' -> (c readMemoryAt: screen + 186 size: 2).\n  'depth' -> (c readMemoryAt: screen + 189 size: 1).\n  'plane0' -> (c readMemoryAt: screen + 192 size: 4).\n  'plane1' -> (c readMemoryAt: screen + 196 size: 4) }"
+			},
+			{
+				"__type" : "textSnippet",
+				"children" : {
+					"__type" : "snippets",
+					"items" : [ ]
+				},
+				"createEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"createTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-11T23:07:57.609758+02:00"
+					}
+				},
+				"editEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"editTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-11T23:07:57.609758+02:00"
+					}
+				},
+				"uid" : {
+					"__type" : "uid",
+					"uidString" : "OKbBrvrvQaaVytK8SWcdUw=="
+				},
+				"paragraphStyle" : {
+					"__type" : "textStyle"
+				},
+				"string" : "La paleta no se puede leer de los registros COLORxx (son write-only: el hardware no devuelve nada al leerlos). La fuente de verdad es el ColorMap del ViewPort de la pantalla (offset 48 = ViewPort+4), interrogado con la función oficial graphics/GetRGB4 (LVO -582, colormap en a0, índice en d0) — una llamada C del monitor. Devuelve el color como RGB4: 4 bits por cañón, right-justified."
+			},
+			{
+				"__type" : "pharoSnippet",
+				"children" : {
+					"__type" : "snippets",
+					"items" : [ ]
+				},
+				"createEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"createTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-11T23:08:06.153953+02:00"
+					}
+				},
+				"editEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"editTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-11T23:08:06.153953+02:00"
+					}
+				},
+				"uid" : {
+					"__type" : "uid",
+					"uidString" : "XwcVlWTkRyCv9gyvQhWK/g=="
+				},
+				"code" : "\"La paleta real de Workbench via GetRGB4: azul $05A, blanco $FFF, negro $002, naranja $F80\"\n| c screen cmap |\nc := GT4AmigaMonitorClient default.\nscreen := c workbenchScreenPointer.\ncmap := c readMemoryAt: screen + 48 size: 4.\n(0 to: 3) collect: [ :i |\n\t| rgb4 |\n\trgb4 := c callLibrary: 3 lvo: -582 a0: cmap a1: 0 d0: i d1: 0 d2: 0 d3: 0.\n\ti -> ('$' , (rgb4 printString: 16)) ]"
+			},
+			{
+				"__type" : "textSnippet",
+				"children" : {
+					"__type" : "snippets",
+					"items" : [ ]
+				},
+				"createEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"createTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-11T23:08:17.66662+02:00"
+					}
+				},
+				"editEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"editTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-11T23:08:17.66662+02:00"
+					}
+				},
+				"uid" : {
+					"__type" : "uid",
+					"uidString" : "DPm9MAFaS9Cz4Ve1EHTleA=="
+				},
+				"paragraphStyle" : {
+					"__type" : "textStyle"
+				},
+				"string" : "Y ahora todo junto: los dos planos completos por lectura en bloque (dos B de 20480 bytes, cinco tramas cada uno), la paleta por GetRGB4, y la composición planar→chunky en Pharo. En un display planar cada píxel reparte sus bits entre los planos: el bit del plano 0 vale 1 y el del plano 1 vale 2, y el número resultante indexa la paleta. El resultado es un Form de 640×256: la pantalla del Amiga, dentro del libro. Tarda unos segundos por el puente serie de FS-UAE (~5 KB/s); sobre hardware real con TCP será mucho más rápido. Inspecciona el resultado — es la captura viva, no una imagen estática."
+			},
+			{
+				"__type" : "pharoSnippet",
+				"children" : {
+					"__type" : "snippets",
+					"items" : [ ]
+				},
+				"createEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"createTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-11T23:08:31.099217+02:00"
+					}
+				},
+				"editEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"editTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-11T23:08:31.099217+02:00"
+					}
+				},
+				"uid" : {
+					"__type" : "uid",
+					"uidString" : "UuvD3LrrQ8Ct+pMX6O3wEA=="
+				},
+				"code" : "\"La pantalla de Workbench, leída del Amiga vivo y compuesta como Form\"\n| c screen bpr rows w cmap p0bits p1bits argbs form bits |\nc := GT4AmigaMonitorClient default.\nscreen := c workbenchScreenPointer.\nbpr := c readMemoryAt: screen + 184 size: 2.\nrows := c readMemoryAt: screen + 186 size: 2.\nw := bpr * 8.\ncmap := c readMemoryAt: screen + 48 size: 4.\np0bits := c readMemoryAt: (c readMemoryAt: screen + 192 size: 4) length: bpr * rows.\np1bits := c readMemoryAt: (c readMemoryAt: screen + 196 size: 4) length: bpr * rows.\nargbs := (0 to: 3) collect: [ :i |\n\t| rgb4 |\n\trgb4 := c callLibrary: 3 lvo: -582 a0: cmap a1: 0 d0: i d1: 0 d2: 0 d3: 0.\n\t(Color\n\t\tr: ((rgb4 bitShift: -8) bitAnd: 15) / 15\n\t\tg: ((rgb4 bitShift: -4) bitAnd: 15) / 15\n\t\tb: (rgb4 bitAnd: 15) / 15) pixelValueForDepth: 32 ].\nform := Form extent: w @ rows depth: 32.\nbits := form bits.\n0 to: rows - 1 do: [ :y |\n\t0 to: bpr - 1 do: [ :bx |\n\t\t| b0 b1 base |\n\t\tb0 := p0bits at: y * bpr + bx + 1.\n\t\tb1 := p1bits at: y * bpr + bx + 1.\n\t\tbase := y * w + (bx * 8).\n\t\t0 to: 7 do: [ :bit |\n\t\t\t| mask idx |\n\t\t\tmask := 1 bitShift: 7 - bit.\n\t\t\tidx := ((b0 bitAnd: mask) = 0 ifTrue: [ 0 ] ifFalse: [ 1 ])\n\t\t\t\t+ ((b1 bitAnd: mask) = 0 ifTrue: [ 0 ] ifFalse: [ 2 ]).\n\t\t\tbits at: base + bit + 1 put: (argbs at: idx + 1) ] ] ].\nform"
+			},
+			{
+				"__type" : "textSnippet",
+				"children" : {
+					"__type" : "snippets",
+					"items" : [ ]
+				},
+				"createEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"createTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-11T23:08:41.669671+02:00"
+					}
+				},
+				"editEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"editTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-11T23:08:41.669671+02:00"
+					}
+				},
+				"uid" : {
+					"__type" : "uid",
+					"uidString" : "NmMEr7bFScSqXUvXEmVBJA=="
+				},
+				"paragraphStyle" : {
+					"__type" : "textStyle"
+				},
+				"string" : "La escritura en bloque cierra el círculo, y de paso ensaya un patrón que será central en el libro: snapshot / actuar / restaurar. El snippet siguiente fotografía 16 líneas del plano 0 con B, las enciende enteras con P (bits del plano 0 a 1 = color 1: una franja blanca cruza el Workbench durante tres segundos — míralo en la ventana de FS-UAE), restaura la foto con otro P y verifica por readback que la restauración es idéntica byte a byte. Escribir píxeles por detrás de Intuition es inofensivo: cualquier redibujado del sistema (arrastra una ventana por encima) también lo habría limpiado."
+			},
+			{
+				"__type" : "pharoSnippet",
+				"children" : {
+					"__type" : "snippets",
+					"items" : [ ]
+				},
+				"createEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"createTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-11T23:08:52.989359+02:00"
+					}
+				},
+				"editEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"editTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-11T23:08:52.989359+02:00"
+					}
+				},
+				"uid" : {
+					"__type" : "uid",
+					"uidString" : "TJd2rbYKQFm7kqiOrQnm5w=="
+				},
+				"code" : "\"Snapshot -> franja blanca 3 segundos -> restaurar -> verificar\"\n| c screen bpr p0 offset strip band back |\nc := GT4AmigaMonitorClient default.\nscreen := c workbenchScreenPointer.\nbpr := c readMemoryAt: screen + 184 size: 2.\np0 := c readMemoryAt: screen + 192 size: 4.\noffset := p0 + (100 * bpr).\nstrip := c readMemoryAt: offset length: bpr * 16.\nband := ByteArray new: bpr * 16 withAll: 16rFF.\nc writeMemoryAt: offset bytes: band.\n(Delay forSeconds: 3) wait.\nc writeMemoryAt: offset bytes: strip.\nback := c readMemoryAt: offset length: bpr * 16.\nback = strip\n\tifTrue: [ 'restaurado — byte a byte idéntico al snapshot' ]\n\tifFalse: [ 'la restauración difiere: revisa la conexión' ]"
+			},
+			{
+				"__type" : "textSnippet",
+				"children" : {
+					"__type" : "snippets",
+					"items" : [ ]
+				},
+				"createEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"createTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-11T23:09:03.94596+02:00"
+					}
+				},
+				"editEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"editTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-11T23:09:03.94596+02:00"
+					}
+				},
+				"uid" : {
+					"__type" : "uid",
+					"uidString" : "XPFdWgw1RwG88xhFUWrs8g=="
+				},
+				"paragraphStyle" : {
+					"__type" : "textStyle"
+				},
+				"string" : "Esta página es el embrión del Interactive Hardware Reference del roadmap: el visor de framebuffer que acabas de ejecutar a mano se convertirá en la gtView de un modelo de Playfield, la paleta en la vista de un modelo de ColorMap, y el patrón snapshot/restore en el mecanismo con el que cada ejemplo del libro limpiará tras de sí. Los números también importan: mover un byte con R cuesta una trama de ~11 bytes por cada 4 bytes útiles; B amortiza esa trama entre 4096 — la pantalla entera pasó de diez mil round-trips imposibles a diez tramas."
+			}
+		]
+	},
+	"createEmail" : {
+		"__type" : "email",
+		"emailString" : "<unknown>"
+	},
+	"createTime" : {
+		"__type" : "time",
+		"time" : {
+			"__type" : "dateAndTime",
+			"dateAndTimeString" : "2026-07-11T23:07:05.191517+02:00"
+		}
+	},
+	"editEmail" : {
+		"__type" : "email",
+		"emailString" : "<unknown>"
+	},
+	"editTime" : {
+		"__type" : "time",
+		"time" : {
+			"__type" : "dateAndTime",
+			"dateAndTimeString" : "2026-07-11T23:07:05.191517+02:00"
+		}
+	},
+	"pageType" : {
+		"__type" : "namedPage",
+		"title" : "Lectura en Bloque — La Pantalla de Workbench dentro del Libro"
+	},
+	"uid" : {
+		"__type" : "uuid",
+		"uuid" : "c08228ba-7555-4442-bc67-861e02e77b93"
+	}
+}

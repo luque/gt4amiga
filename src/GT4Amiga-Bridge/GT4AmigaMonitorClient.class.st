@@ -18,6 +18,8 @@ TRANSPORTS: the monitor auto-selects at startup between a TCP server on port 234
 PROTOCOL v2 - FRAMED (see amigaSource for the full commented 68k source). Every command travels as [$A5][opcode][payload][chk] where chk = XOR of opcode and payload; every response as [$5A][status][payload][chk] where chk = XOR of status and payload. status 0 = OK (executed); status 1 = NAK: bad checksum, NOTHING was executed, always safe to resend (even a CALL). The monitor''s main loop HUNTS the $A5 sync byte, so it self-realigns after any corrupted frame - no more wedged-mid-command monitors. Commands (opcode / payload -> OK-response payload):
 	READ  $52  [size][pad][addr(4)]                      -> size bytes
 	WRITE $57  [size][pad][addr(4)][data x size]         -> (empty)
+	BLOCK READ  $42  [addr(4)][len(2)]                   -> len bytes (len 1..4096)
+	BLOCK WRITE $50  [addr(4)][len(2)][data x len]       -> (empty)   (len 1..4096)
 	CALL  $43  [libIndex][pad][lvo(2)][a0..a1(4 each)][d0..d3(4 each)] -> d0 (4 bytes)
 	GET SCREEN $53  (no payload)                         -> IntuitionBase->FirstScreen (4 bytes)
 	EXEC  $58  (no payload)                              -> execution-mailbox address (4 bytes), or 0 if nothing was launched
@@ -82,6 +84,11 @@ GT4AmigaMonitorClient >> be16Signed: anInteger [
 	| v |
 	v := anInteger < 0 ifTrue: [ anInteger + 65536 ] ifFalse: [ anInteger ].
 	^ ByteArray with: ((v bitShift: -8) bitAnd: 255) with: (v bitAnd: 255)
+]
+
+{ #category : #'private' }
+GT4AmigaMonitorClient >> be16: anInteger [
+	^ ByteArray with: ((anInteger bitShift: -8) bitAnd: 255) with: (anInteger bitAnd: 255)
 ]
 
 { #category : #'private' }
@@ -324,6 +331,31 @@ GT4AmigaMonitorClient >> readExactly: n from: aSocket [
 ]
 
 { #category : #'protocol' }
+GT4AmigaMonitorClient >> readMemoryAt: anAddress length: aLength [
+	"Block read (opcode B): aLength bytes starting at anAddress, as a
+	 ByteArray, or nil if any chunk failed. Chunked into frames of at most
+	 4096 bytes (the monitor's buffer bound), so aLength is unlimited -
+	 a whole 40 KB framebuffer is ten frames. Idempotent, retried on
+	 silence like R. The Amiga side copies byte-wise: use this for RAM
+	 (framebuffers, copper lists, sprites), NOT for custom chip registers,
+	 which require word-size accesses (use readMemoryAt:size:)."
+	| out offset n resp |
+	out := WriteStream on: (ByteArray new: aLength).
+	offset := 0.
+	[ offset < aLength ] whileTrue: [
+		n := 4096 min: aLength - offset.
+		resp := self
+			sendFrame: 66
+			payload: (self be32: anAddress + offset) , (self be16: n)
+			expect: n
+			retryOnSilence: true.
+		resp ifNil: [ ^ nil ].
+		out nextPutAll: resp.
+		offset := offset + n ].
+	^ out contents
+]
+
+{ #category : #'protocol' }
 GT4AmigaMonitorClient >> readMemoryAt: anAddress size: aSize [
 	"aSize is 1, 2 or 4 (byte/word/long). Raw peek - no library involved,
 	 see the class comment for why this alone is not enough to change a
@@ -357,6 +389,29 @@ GT4AmigaMonitorClient >> workbenchScreenPointer [
 	resp := self sendFrame: 83 payload: #[] expect: 4 retryOnSilence: true.
 	resp ifNil: [ ^ nil ].
 	^ self bytesToLong: resp
+]
+
+{ #category : #'protocol' }
+GT4AmigaMonitorClient >> writeMemoryAt: anAddress bytes: aByteArray [
+	"Block write (opcode P): aByteArray to anAddress, answering true when
+	 every chunk was acknowledged. Chunked at 4096 bytes like the block
+	 read. The monitor receives the data into its internal buffer and only
+	 copies to the destination after verifying the checksum, so a corrupt
+	 frame NAKs without having touched memory. Same RAM-only caveat as
+	 readMemoryAt:length: - byte-wise copy, not for custom chip registers."
+	| offset n resp |
+	offset := 0.
+	[ offset < aByteArray size ] whileTrue: [
+		n := 4096 min: aByteArray size - offset.
+		resp := self
+			sendFrame: 80
+			payload: (self be32: anAddress + offset) , (self be16: n)
+				, (aByteArray copyFrom: offset + 1 to: offset + n)
+			expect: 0
+			retryOnSilence: true.
+		resp ifNil: [ ^ false ].
+		offset := offset + n ].
+	^ true
 ]
 
 { #category : #'protocol' }

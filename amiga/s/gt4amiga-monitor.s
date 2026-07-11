@@ -37,6 +37,16 @@
 ; Comandos (opcode / payload / respuesta):
 ;   R $52  [size][pad][addr.l]            -> payload = size bytes leidos
 ;   W $57  [size][pad][addr.l][data...]   -> payload vacio (ack)
+;   B $42  [addr.l][len.w]                -> payload = len bytes leidos
+;          (1..BLK_MAX). La region se copia primero a un buffer interno:
+;          datos y checksum salen de la misma foto coherente.
+;   P $50  [addr.l][len.w][data...]       -> payload vacio (ack)
+;          (1..BLK_MAX). Los datos se reciben EN EL BUFFER y solo se
+;          copian al destino tras verificar el checksum: un frame
+;          corrupto produce NAK sin haber tocado memoria.
+;          B/P copian byte a byte: son para RAM (framebuffers, copper
+;          lists, sprites). Los registros custom exigen accesos de
+;          word: para ellos, R/W de toda la vida.
 ;   C $43  [lib][pad][lvo.w][a0.l][a1.l][d0.l][d1.l][d2.l][d3.l]
 ;                                         -> payload = d0 tras la llamada
 ;   S $53  (sin payload)                  -> payload = IntuitionBase->FirstScreen
@@ -65,6 +75,10 @@ MODE_OLDFILE equ 1005
 MODE_NEWFILE equ 1006
 TCP_PORT     equ 2345
 EXEC_STACK   equ 4096               ; pila del proceso hijo (multiplo de 4)
+BLK_MAX      equ 4096               ; maximo de una transferencia B/P:
+                                    ; acota el buffer BSS y el coste de
+                                    ; reintentar una trama corrupta (el
+                                    ; cliente trocea cantidades mayores)
 PR_COS       equ 160                ; offset de pr_COS en struct Process
                                     ; (dosextens.i: TC_SIZE=92 + MP_SIZE=34
                                     ;  + pad.w + 8 campos.l = 160)
@@ -194,6 +208,10 @@ hunt:
         beq     do_read
         cmp.b   #$57,d7
         beq     do_write
+        cmp.b   #$42,d7
+        beq     do_blockread
+        cmp.b   #$50,d7
+        beq     do_blockwrite
         cmp.b   #$43,d7
         beq     do_call
         cmp.b   #$53,d7
@@ -292,6 +310,82 @@ wr_long:
         move.l  databuf,(a0)
 wr_done:
         moveq   #0,d5               ; respuesta OK sin payload
+        bra     send_ok
+
+do_blockread:
+        lea     rwbuf,a5            ; [addr.l][len.w] + chk
+        moveq   #7,d5
+        bsr     read_n_bytes
+        moveq   #0,d4               ; chk = opcode ^ header(6)
+        move.b  d7,d4
+        lea     rwbuf,a5
+        moveq   #6,d5
+        bsr     xor_buf
+        cmp.b   rwbuf+6,d4
+        bne     send_nak
+        moveq   #0,d7               ; d7 = len (el opcode ya no hace
+        move.w  rwbuf+4,d7           ; falta; d2/d3 los pisan las
+        beq     hunt                 ; rutinas de E/S)
+        cmp.l   #BLK_MAX,d7
+        bhi     hunt
+        move.l  rwbuf,a0            ; snapshot coherente al buffer:
+        lea     blkbuf,a1            ; datos y checksum de la misma foto
+        move.l  d7,d5
+brd_copy:
+        move.b  (a0)+,(a1)+
+        subq.l  #1,d5
+        bne.s   brd_copy
+        move.b  #$5A,respbuf        ; cabecera [5A][00]
+        clr.b   respbuf+1
+        lea     respbuf,a5
+        moveq   #2,d5
+        bsr     write_n_bytes
+        lea     blkbuf,a5           ; datos
+        move.l  d7,d5
+        bsr     write_n_bytes
+        moveq   #0,d4               ; chk = XOR(status=0 ^ datos)
+        lea     blkbuf,a5
+        move.l  d7,d5
+        bsr     xor_buf
+        move.b  d4,respbuf          ; un byte final
+        lea     respbuf,a5
+        moveq   #1,d5
+        bsr     write_n_bytes
+        bra     mainloop
+
+do_blockwrite:
+        lea     rwbuf,a5            ; [addr.l][len.w]
+        moveq   #6,d5
+        bsr     read_n_bytes
+        moveq   #0,d7
+        move.w  rwbuf+4,d7          ; validar len ANTES de usarlo como
+        beq     hunt                 ; contador de lectura
+        cmp.l   #BLK_MAX,d7
+        bhi     hunt
+        lea     blkbuf,a5           ; datos + chk AL BUFFER, nunca al
+        move.l  d7,d5                ; destino: el NAK garantiza que un
+        addq.l  #1,d5                ; frame corrupto no ejecuto nada
+        bsr     read_n_bytes
+        moveq   #0,d4               ; chk = opcode ^ header(6) ^ datos
+        move.b  #$50,d4             ; (d7 ya es len, no el opcode)
+        lea     rwbuf,a5
+        moveq   #6,d5
+        bsr     xor_buf
+        lea     blkbuf,a5
+        move.l  d7,d5
+        bsr     xor_buf
+        lea     blkbuf,a5           ; chk esperado justo tras los datos
+        adda.l  d7,a5
+        cmp.b   (a5),d4
+        bne     send_nak
+        move.l  rwbuf,a0            ; verificado: buffer -> destino
+        lea     blkbuf,a1
+        move.l  d7,d5
+bwr_copy:
+        move.b  (a1)+,(a0)+
+        subq.l  #1,d5
+        bne.s   bwr_copy
+        moveq   #0,d5               ; ack vacio
         bra     send_ok
 
 do_call:
@@ -520,13 +614,13 @@ read_n_bytes:                       ; a5 = buffer, d5 = n
 rnb_serloop:
         move.l  d6,d1
         move.l  a5,d2
-        moveq   #1,d3
-        jsr     -42(a6)
-        tst.l   d0
-        ble     serial_lost
-        addq.l  #1,a5
-        subq.l  #1,d5
-        bne.s   rnb_serloop
+        move.l  d5,d3               ; pedir TODO lo que falta en un solo
+        jsr     -42(a6)              ; Read (un Read por byte convertia
+        tst.l   d0                   ; una trama P de 4 KB en 4097
+        ble     serial_lost          ; round-trips a serial.device y el
+        adda.l  d0,a5                ; monitor tardaba decenas de
+        sub.l   d0,d5                ; segundos en contestar); avanzar
+        bne.s   rnb_serloop          ; por lo realmente devuelto
         rts
 rnb_tcp:
         move.l  sockbase,a6         ; TCP via bsdsocket recv
@@ -699,3 +793,6 @@ exec_seglist:
         ds.l    1                   ; BPTR del seglist cargado
 exec_entry:
         ds.l    1                   ; APTR de entrada para el stub
+blkbuf:
+        ds.b    BLK_MAX+2           ; transferencias B/P: datos + chk,
+                                    ; redondeado a par

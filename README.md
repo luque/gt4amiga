@@ -193,12 +193,16 @@ Reference for writing another client (the Pharo implementation is `GT4AmigaMonit
 |----|---------|---------------------|
 | `R` `$52` read memory | `[size:1][pad:1][addr:4]` — size 1, 2 or 4 | the `size` bytes read |
 | `W` `$57` write memory | `[size:1][pad:1][addr:4][data × size]` | empty (ack) |
+| `B` `$42` block read | `[addr:4][len:2]` — len 1..4096 | the `len` bytes read |
+| `P` `$50` block write | `[addr:4][len:2][data × len]` — len 1..4096 | empty (ack) |
 | `C` `$43` call library | `[lib:1][pad:1][lvo:2 signed][a0:4][a1:4][d0:4][d1:4][d2:4][d3:4]` | `d0` after the call (4 bytes) |
 | `S` `$53` screen pointer | none | `IntuitionBase->FirstScreen` (4 bytes) |
 | `X` `$58` execute program | none | execution-mailbox address (4 bytes), or `0` if nothing was launched |
 | `Q` `$51` quit | none | empty; the monitor then exits |
 
 `lib` for CALL: `0` = exec, `1` = dos.library, `2` = intuition.library, `3` = graphics.library (bases opened once at monitor startup). `lvo` is the signed 16-bit library vector offset (e.g. FindTask = `-294`).
+
+`B`/`P` carry at most 4096 bytes per frame (the monitor's buffer bound; clients chunk larger transfers). The monitor snapshots the region into an internal buffer, so a `B` response's data and checksum come from one coherent read, and a `P` only copies to the destination *after* the checksum verifies — a corrupt frame NAKs without having touched memory. Both copy byte-wise: they are for RAM (framebuffers, copper lists, sprites); custom chip registers require word-size accesses — use `R`/`W` for those.
 
 `X` loads `GT4A:incoming/program` and runs it as a separate AmigaDOS process with its `Output()` captured to `GT4A:outgoing/output`; the monitor keeps serving commands meanwhile. Completion is polled by the host through ordinary `R` reads of the mailbox: `+0` state byte (`0` never ran, `1` running, `2` done, `3` launch error), `+4` return-code long (the program's final `d0`, valid at state 2). An `X` while state is `1`, or whose `LoadSeg`/`CreateProc` fails, answers `0`.
 
@@ -240,6 +244,7 @@ The book pages will appear in the Lepiter browser.
 | **Tomar y Liberar el Hardware — Forbid, Disable y DMA** | Taking exclusive control of Amiga hardware (`Forbid`/`Disable`, DMA takeover) and releasing it cleanly so the OS survives, adapted from *Amiga Assembly Game Programming* chapter 4 |
 | **El Bridge Server — Controlar el Amiga en Vivo** | Live peek/poke and generic library calls over the serial bridge: reading `ExecBase`, changing the Workbench background color via `SetRGB4`, and a GToolkit slider driving the color in real time |
 | **El Copper — Un Split de Color en Vivo** | Building a minimal Copper list word-by-word in live chip RAM (MOVE/WAIT encoding from the Hardware Reference Manual), installing it safely, and moving the color-split line in real time from a GToolkit slider |
+| **Lectura en Bloque — La Pantalla de Workbench dentro del Libro** | The block-transfer opcodes at work: navigating `Screen`→`BitMap` structures, reading the real palette via `GetRGB4`, block-reading both bitplanes and composing the live Workbench screen as an image inside the notebook, and a snapshot→paint→restore round-trip on visible bitplane memory |
 
 ## Quick start (Playground)
 
@@ -298,7 +303,7 @@ Goal: rebuild the *subject matter* of the Amiga Hardware Reference Manual as an 
 
 Infrastructure first:
 
-- [ ] Block-transfer opcodes in the monitor (bulk read/write with a 16-bit length): `R`/`W` move 1/2/4 bytes inside an ~11-byte frame, far too slow for copper lists, sprite images or a 40 KB framebuffer. This gates every visualization below.
+- [x] Block-transfer opcodes in the monitor (`B`/`P`, up to 4096 bytes per frame, client-side chunking for unlimited sizes): `R`/`W` move 1/2/4 bytes inside an ~11-byte frame, far too slow for copper lists, sprite images or a 40 KB framebuffer. **Verified end-to-end (2026-07-11)** with an 8 KB write-then-readback (including `$A5`/`$11`/`$13` payload bytes) and the new book page "Lectura en Bloque — La Pantalla de Workbench dentro del Libro", which block-reads the live Workbench bitplanes and composes them into an image inside the notebook (~5 KB/s over the FS-UAE serial bridge). Fixing this also uncovered and removed a byte-at-a-time `Read()` loop in the monitor's SER: input path — every read now requests the full remaining count in one call.
 - [ ] `GT4Amiga-Hardware` model package, founded on the chip register + bit-field model (encode the AHRM register tables as objects: name, address, R/W/strobe semantics, decoded fields). Each register knows *how its current value is knowable* — readable, shadowed last-write, or derived from the OS copper list — because most chip registers are write-only. First payoffs: a live register inspector (decoded fields, click-to-toggle writable bits) and a DMACON/INTENA control panel.
 - [ ] `GT4AmigaMachine` root model + the global views: a clickable block diagram (68000, Agnus, Denise, Paula, CIAs, chip/slow/fast RAM, buses — DMACON bits light up the bus arrows) and a memory map (regions → memory-range models with hexdump/bitmap/copper-disassembly views). Two decompositions of the same machine as alternate views: physical (which chip owns what) and functional (Copper, Playfield, Sprites, Blitter, Audio — the book's chapters). The centerpiece live figure: the AHRM's DMA time-slot-per-scanline diagram, parameterized by the real BPLCON0/DMACON state. Live chip/fast free-memory gauges via `C` to `exec/AvailMem`.
 - [ ] One generic "live hardware" snippet type (evaluates to a model object, embeds its refreshing inspector) plus one background observer process per page that polls the addresses visible views need and publishes announcements — no per-view polling loops, no serial I/O on the UI thread.
