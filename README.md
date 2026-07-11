@@ -7,14 +7,31 @@ GT4Amiga lets you write Motorola 68000 assembly directly inside a Lepiter page, 
 ## How it works
 
 ```
-Lepiter page (GToolkit)
-  └─ amiga68kSnippet
-       ├─ Assemble  →  vasmm68k_mot  →  AmigaOS hunk executable
-       └─ Run       →  shared dir  →  FS-UAE / real Amiga (via A314)
-                                           │
-                                    serial port (TCP)
-                                           │
-                                    output back in Lepiter
+┌─ host — GToolkit (Pharo / Lepiter) ─────────────────────────────┐
+│                                                                 │
+│  Lepiter book pages — amiga68kSnippet                           │
+│    ├─ Assemble → GT4AmigaAssembler → vasmm68k_mot → hunk binary │
+│    └─ Run ↴                                                     │
+│                                                                 │
+│  GT4AmigaMonitorClient — protocol client (R/W/C/S/X/Q)          │
+│  GT4FSUAERunner — FS-UAE lifecycle, TCP socket, run: pipeline   │
+└─────────┬──────────────────────────────────┬────────────────────┘
+          │ framed binary protocol           │ file exchange
+          │ TCP :2345 (FS-UAE bridges SER:,  │ shared/ ⇄ GT4A:
+          │ real hardware speaks TCP/IP)     │ program in, output out
+┌─────────┴──────────────────────────────────┴────────────────────┐
+│ Amiga — FS-UAE (Kickstart 1.3) or real A500 (PiStorm/Emu68)     │
+│                                                                 │
+│  gt4amiga-monitor — the only resident program                   │
+│  (launched at boot by S:User-Startup)                           │
+│    ├─ R / W  peek & poke memory and chip registers, live        │
+│    ├─ C      call any AmigaOS library function, live            │
+│    ├─ S      Workbench screen pointer                           │
+│    ├─ Q      quit                                               │
+│    └─ X      run GT4A:incoming/program as its own process       │
+│                └─ Output() → GT4A:outgoing/output → Lepiter     │
+│              …the monitor keeps serving commands meanwhile      │
+└─────────────────────────────────────────────────────────────────┘
 ```
 
 The Amiga side runs a single resident program: **gt4amiga-monitor**, launched at boot by `S:User-Startup`. It answers a small framed binary protocol — memory peek/poke, generic AmigaOS library calls, and program execution — over the serial port (which FS-UAE bridges to a TCP socket) or over a real TCP/IP stack on real hardware. To run a snippet, GToolkit drops the assembled executable into the shared directory and sends the monitor an execute command; the program runs as its own AmigaDOS process with its output captured to a file in the shared directory, which GToolkit reads back and displays in the notebook — all while the monitor keeps serving live commands.
