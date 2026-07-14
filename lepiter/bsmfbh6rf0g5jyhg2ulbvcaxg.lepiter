@@ -1,0 +1,431 @@
+{
+	"__schema" : "4.1",
+	"__type" : "page",
+	"children" : {
+		"__type" : "snippets",
+		"items" : [
+			{
+				"__type" : "textSnippet",
+				"children" : {
+					"__type" : "snippets",
+					"items" : [ ]
+				},
+				"createEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"createTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-14T11:55:23.592488+02:00"
+					}
+				},
+				"editEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"editTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-14T11:55:23.592488+02:00"
+					}
+				},
+				"uid" : {
+					"__type" : "uid",
+					"uidString" : "zSvBonmFSsOtkjuD4YJE2A=="
+				},
+				"paragraphStyle" : {
+					"__type" : "textStyle"
+				},
+				"string" : "El Amiga no es un ordenador con «una CPU y una tarjeta gráfica»: es una federación de chips. Junto al 68000 conviven tres chips custom — Agnus (DMA, Copper y Blitter), Denise (bitplanes, sprites y color) y Paula (audio, disco y puerto serie) — que trabajan sobre la misma memoria Chip robando ciclos al procesador. Toda esa maquinaria se gobierna desde un único fichero de registros de 16 bits a partir de la dirección $DFF000. Estos registros tienen una semántica de acceso peculiar que el Amiga Hardware Reference Manual documenta registro a registro: #read, solo lectura (DMACONR, VPOSR, INTENAR...); #write, solo escritura — el hardware nunca responde a una lectura; #setClear, solo escritura con el protocolo SET/CLR del bit 15 (DMACON, INTENA, INTREQ, ADKCON): escribir $8000+máscara ENCIENDE los bits de la máscara y escribir la máscara a secas los APAGA, nunca se escribe un valor «tal cual»; y #strobe, donde el acto de escribir ES la operación (COPJMP1/2) y el valor da igual. El paquete GT4Amiga-Hardware convierte este capítulo del manual en objetos: GT4AmigaChipRegisters es el catálogo, cada GT4AmigaChipRegister conoce su dirección, su modo de acceso y cómo conocer su valor real, y cada GT4AmigaBitField decodifica un campo de bits con su significado. Las direcciones y los números de bit están verificados contra los includes canónicos del NDK (hardware/custom.i, dmabits.i, intbits.i, adkbits.i)."
+			},
+			{
+				"__type" : "pharoSnippet",
+				"children" : {
+					"__type" : "snippets",
+					"items" : [ ]
+				},
+				"createEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"createTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-14T11:55:29.300035+02:00"
+					}
+				},
+				"editEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"editTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-14T11:55:29.300035+02:00"
+					}
+				},
+				"uid" : {
+					"__type" : "uid",
+					"uidString" : "rD8nAdtpSCmfhZlPbKpLIw=="
+				},
+				"code" : "regs := GT4AmigaChipRegisters default.\n[ regs refresh ] fork.\nregs"
+			},
+			{
+				"__type" : "textSnippet",
+				"children" : {
+					"__type" : "snippets",
+					"items" : [ ]
+				},
+				"createEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"createTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-14T11:55:39.440127+02:00"
+					}
+				},
+				"editEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"editTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-14T11:55:39.440127+02:00"
+					}
+				},
+				"uid" : {
+					"__type" : "uid",
+					"uidString" : "Z9vDL0l/TYWfhsbzVWYNlg=="
+				},
+				"paragraphStyle" : {
+					"__type" : "textStyle"
+				},
+				"string" : "El resultado es el catálogo completo: 57 registros modelados. El refresh se lanza en segundo plano — regla del proyecto: nada de I/O serie en el hilo de la interfaz — y al terminar anuncia GT4AmigaRegistersRefreshed, de modo que la vista Registers se refresca sola con los valores recién leídos del Amiga. Haz clic en cualquier registro y el inspector abrirá una nueva columna Miller con sus vistas Bits y Register: el manual, pero navegable. Fíjate en DMACONR: en un Workbench recién arrancado vale $03F0 = DMAEN + BPLEN + COPEN + BLTEN + SPREN + DSKEN. Su vista Bits lo decodifica campo a campo:"
+			},
+			{
+				"__type" : "pharoSnippet",
+				"children" : {
+					"__type" : "snippets",
+					"items" : [ ]
+				},
+				"createEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"createTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-14T11:55:46.188376+02:00"
+					}
+				},
+				"editEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"editTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-14T11:55:46.188376+02:00"
+					}
+				},
+				"uid" : {
+					"__type" : "uid",
+					"uidString" : "rPVuFnMVSqqmYjoL4Kb0dg=="
+				},
+				"code" : "| dmaconr |\ndmaconr := GT4AmigaChipRegisters default at: 'DMACONR'.\ndmaconr read.\ndmaconr"
+			},
+			{
+				"__type" : "textSnippet",
+				"children" : {
+					"__type" : "snippets",
+					"items" : [ ]
+				},
+				"createEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"createTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-14T11:55:58.422762+02:00"
+					}
+				},
+				"editEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"editTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-14T11:55:58.422762+02:00"
+					}
+				},
+				"uid" : {
+					"__type" : "uid",
+					"uidString" : "Aqg8j9PhRrW7ybRSlAgTCA=="
+				},
+				"paragraphStyle" : {
+					"__type" : "textStyle"
+				},
+				"string" : "¿Y los registros de solo escritura? La mayor parte del chipset no se puede leer: escribir en $DFF096 configura el DMA, pero leer de $DFF096 no devuelve nada útil. Por eso cada registro del modelo sabe cómo es conocible su valor real, por este orden. Primero, la derivación: preguntarle al sistema operativo. Los COLORxx son el ejemplo perfecto — la copper list del Workbench reescribe los registros de color en cada frame, así que la verdad vive en el ColorMap del ViewPort y se consulta con GetRGB4 de graphics.library (una llamada de biblioteca a través del monitor). Segundo, la contrapartida de lectura: DMACON ($096) y DMACONR ($002) son el mismo latch con dos direcciones; igual INTENA/INTENAR, INTREQ/INTREQR y ADKCON/ADKCONR. Tercero, la lectura directa cuando el modo es #read. Y como último recurso, la sombra (shadow): el último valor escrito a través del modelo en esta sesión — «creído, no verificado». Los cuatro primeros colores de la paleta del Workbench, derivados del OS:"
+			},
+			{
+				"__type" : "pharoSnippet",
+				"children" : {
+					"__type" : "snippets",
+					"items" : [ ]
+				},
+				"createEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"createTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-14T11:56:05.041044+02:00"
+					}
+				},
+				"editEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"editTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-14T11:56:05.041044+02:00"
+					}
+				},
+				"uid" : {
+					"__type" : "uid",
+					"uidString" : "03BOlkibRKKwmrvl6fNutg=="
+				},
+				"code" : "| regs |\nregs := GT4AmigaChipRegisters default.\n(0 to: 3) collect: [ :i |\n\t| reg v |\n\treg := regs at: 'COLOR' , (i printPaddedWith: $0 to: 2 base: 10).\n\tv := reg read.\n\treg name -> (v\n\t\tifNil: [ '?' ]\n\t\tifNotNil: [ '$' , (v printPaddedWith: $0 to: 3 base: 16) ]) ]"
+			},
+			{
+				"__type" : "textSnippet",
+				"children" : {
+					"__type" : "snippets",
+					"items" : [ ]
+				},
+				"createEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"createTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-14T11:56:11.18502+02:00"
+					}
+				},
+				"editEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"editTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-14T11:56:11.18502+02:00"
+					}
+				},
+				"uid" : {
+					"__type" : "uid",
+					"uidString" : "g3/72x+uTFa0Fn7RD7kVZA=="
+				},
+				"paragraphStyle" : {
+					"__type" : "textStyle"
+				},
+				"string" : "La prueba de que esto no es una tabla estática sino una máquina viva: VHPOSR contiene la posición del haz de electrones en este preciso instante. Dos lecturas consecutivas casi nunca coinciden — entre una y otra, el haz ha seguido barriendo la pantalla:"
+			},
+			{
+				"__type" : "pharoSnippet",
+				"children" : {
+					"__type" : "snippets",
+					"items" : [ ]
+				},
+				"createEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"createTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-14T11:56:17.258584+02:00"
+					}
+				},
+				"editEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"editTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-14T11:56:17.258584+02:00"
+					}
+				},
+				"uid" : {
+					"__type" : "uid",
+					"uidString" : "WFaWRS/gRdek1pMUMs7+Fw=="
+				},
+				"code" : "| vhposr a b |\nvhposr := GT4AmigaChipRegisters default at: 'VHPOSR'.\na := vhposr read.\nb := vhposr read.\n{ 'primera lectura' -> ('$' , (a printPaddedWith: $0 to: 4 base: 16)).\n  'segunda lectura' -> ('$' , (b printPaddedWith: $0 to: 4 base: 16)).\n  'el haz se ha movido' -> (a ~= b) }"
+			},
+			{
+				"__type" : "textSnippet",
+				"children" : {
+					"__type" : "snippets",
+					"items" : [ ]
+				},
+				"createEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"createTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-14T11:56:25.516919+02:00"
+					}
+				},
+				"editEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"editTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-14T11:56:25.516919+02:00"
+					}
+				},
+				"uid" : {
+					"__type" : "uid",
+					"uidString" : "pcydisGbQoW8BlpOcMlaCA=="
+				},
+				"paragraphStyle" : {
+					"__type" : "textStyle"
+				},
+				"string" : "El modelo no solo refleja: también actúa. Para los registros #setClear jamás se escribe un valor crudo — el hardware lo malinterpretaría como un comando SET o CLR arbitrario —, así que write: está prohibido en ellos y en su lugar existen setBits:/clearBits: y, con los nombres de campo del NDK, enable:/disable:. El siguiente snippet apaga el DMA de bitplanes (la pantalla del Amiga se queda plana, del color de fondo COLOR00), espera dos segundos y lo vuelve a encender, devolviendo el valor de DMACON leído a través de DMACONR. Mira la ventana de FS-UAE mientras lo ejecutas:"
+			},
+			{
+				"__type" : "pharoSnippet",
+				"children" : {
+					"__type" : "snippets",
+					"items" : [ ]
+				},
+				"createEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"createTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-14T11:56:33.303351+02:00"
+					}
+				},
+				"editEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"editTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-14T11:56:33.303351+02:00"
+					}
+				},
+				"uid" : {
+					"__type" : "uid",
+					"uidString" : "gFdkvQn6RA+bMF2oJwH5Vw=="
+				},
+				"code" : "| dmacon |\ndmacon := GT4AmigaChipRegisters default at: 'DMACON'.\ndmacon disable: 'BPLEN'.\n2 seconds wait.\ndmacon enable: 'BPLEN'.\n'$' , (dmacon read printPaddedWith: $0 to: 4 base: 16)"
+			},
+			{
+				"__type" : "textSnippet",
+				"children" : {
+					"__type" : "snippets",
+					"items" : [ ]
+				},
+				"createEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"createTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-14T11:56:39.892033+02:00"
+					}
+				},
+				"editEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"editTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-14T11:56:39.892033+02:00"
+					}
+				},
+				"uid" : {
+					"__type" : "uid",
+					"uidString" : "QuHAK0ZDSYKCOD6t/jLfwA=="
+				},
+				"paragraphStyle" : {
+					"__type" : "textStyle"
+				},
+				"string" : "Con este vocabulario — registros con semántica, campos con significado, valores conocibles y acciones seguras — el resto del Interactive Hardware Reference se construye encima: el panel interactivo de DMACON/INTENA con interruptores clicables, el modelo GT4AmigaMachine con el diagrama de bloques navegable de chips, buses y tipos de memoria, y los capítulos de Copper, Playfield, Sprites y Blitter, cada uno con sus propios modelos y vistas sobre esta misma base."
+			}
+		]
+	},
+	"createEmail" : {
+		"__type" : "email",
+		"emailString" : "<unknown>"
+	},
+	"createTime" : {
+		"__type" : "time",
+		"time" : {
+			"__type" : "dateAndTime",
+			"dateAndTimeString" : "2026-07-14T11:55:11.554238+02:00"
+		}
+	},
+	"editEmail" : {
+		"__type" : "email",
+		"emailString" : "<unknown>"
+	},
+	"editTime" : {
+		"__type" : "time",
+		"time" : {
+			"__type" : "dateAndTime",
+			"dateAndTimeString" : "2026-07-14T11:55:11.554238+02:00"
+		}
+	},
+	"pageType" : {
+		"__type" : "namedPage",
+		"title" : "El Chipset del Amiga — Registros como Objetos Vivos"
+	},
+	"uid" : {
+		"__type" : "uuid",
+		"uuid" : "541dd233-b1fe-4634-ad28-94b51fac3bc7"
+	}
+}
