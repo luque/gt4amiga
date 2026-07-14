@@ -1,0 +1,431 @@
+{
+	"__schema" : "4.1",
+	"__type" : "page",
+	"children" : {
+		"__type" : "snippets",
+		"items" : [
+			{
+				"__type" : "textSnippet",
+				"children" : {
+					"__type" : "snippets",
+					"items" : [ ]
+				},
+				"createEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"createTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-14T23:46:37.510333+02:00"
+					}
+				},
+				"editEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"editTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-14T23:46:37.510333+02:00"
+					}
+				},
+				"uid" : {
+					"__type" : "uid",
+					"uidString" : "sKraKHzlTl2DeuHS5/l0jA=="
+				},
+				"paragraphStyle" : {
+					"__type" : "textStyle"
+				},
+				"string" : "Hasta ahora hemos mirado el Amiga registro a registro. En esta página damos un paso atrás y miramos *la máquina entera* como un solo objeto vivo: `GT4AmigaMachine`. El modelo descompone el A500 de tres maneras, y las tres son puertas de entrada al mismo catálogo de registros que ya conoces:\n\n- **Física** (`chips`): qué silicio responde a cada dirección — el 68000, Agnus, Denise, Paula y los dos CIA. La asignación registro→chip sigue exactamente la columna de chips del apéndice B del *Amiga Hardware Reference Manual*, y enseña cosas que sorprenden: DMACON se escribe *a los tres chips a la vez* (cada uno retiene los bits de los canales que le tocan), BPLCON0 es compartido entre Agnus y Denise, y DIWSTRT/DIWSTOP viven en Agnus, no en Denise.\n- **Funcional** (`subsystems`): los registros que se programan *juntos* — DMA, interrupciones, Copper, playfield, color, haz, audio/disco — sin importar en qué chip estén. El subsistema playfield abarca Agnus (fetch, módulos, ventana) y Denise (control de bitplanes, prioridades): son los capítulos de este libro.\n- **Mapa de direcciones** (`regions`): Chip RAM, los CIA, Slow RAM, el archivo de registros custom y la ROM Kickstart, cada uno con su rango y su naturaleza.\n\nInspecciona la máquina y recorre las tres vistas — cada fila es navegable hasta el registro individual con sus campos de bits:"
+			},
+			{
+				"__type" : "pharoSnippet",
+				"children" : {
+					"__type" : "snippets",
+					"items" : [ ]
+				},
+				"createEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"createTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-14T23:46:43.646119+02:00"
+					}
+				},
+				"editEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"editTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-14T23:46:43.646119+02:00"
+					}
+				},
+				"uid" : {
+					"__type" : "uid",
+					"uidString" : "KhTcg0jSTw+EADEyB26BQw=="
+				},
+				"code" : "GT4AmigaMachine default"
+			},
+			{
+				"__type" : "textSnippet",
+				"children" : {
+					"__type" : "snippets",
+					"items" : [ ]
+				},
+				"createEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"createTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-14T23:46:57.442056+02:00"
+					}
+				},
+				"editEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"editTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-14T23:46:57.442056+02:00"
+					}
+				},
+				"uid" : {
+					"__type" : "uid",
+					"uidString" : "qydupWnJQqe84Q1CXP8ptg=="
+				},
+				"paragraphStyle" : {
+					"__type" : "textStyle"
+				},
+				"string" : "La vista *Block diagram* de la máquina (también disponible como elemento independiente, abajo) es la figura central: las cajas son los chips y las memorias, y las flechas naranjas son los canales DMA *reales, ahora mismo*. Un proceso en segundo plano lee DMACON cada 2 segundos (el mismo anuncio que usa el panel de control, así que ambos se mantienen frescos mutuamente) y:\n\n- la flecha **Chip RAM → Agnus** se ilumina bajo el interruptor maestro DMAEN — es el embudo por el que pasa *todo* el DMA;\n- la flecha **Agnus → Denise** se ilumina cuando BPLEN o SPREN están activos — el chorro de bitplanes y sprites que se convierte en imagen;\n- la flecha **Agnus → Paula** se ilumina con DSKEN o cualquier AUDxEN — audio y disco;\n- los LED **COP** y **BLT** están *dentro* de la caja de Agnus, porque el Copper y el blitter son motores DMA que viven físicamente en ese chip.\n\nY cada caja es una puerta: haz clic en Agnus y el inspector te lleva al objeto `GT4AmigaChip` con sus 17 registros; haz clic en Chip RAM y llegas a la región de memoria con su volcado hexadecimal."
+			},
+			{
+				"__type" : "pharoSnippet",
+				"children" : {
+					"__type" : "snippets",
+					"items" : [ ]
+				},
+				"createEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"createTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-14T23:47:03.828894+02:00"
+					}
+				},
+				"editEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"editTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-14T23:47:03.828894+02:00"
+					}
+				},
+				"uid" : {
+					"__type" : "uid",
+					"uidString" : "n42t3N7kQhmD9m+4o5+4GA=="
+				},
+				"code" : "GT4AmigaBlockDiagramElement onMachine: GT4AmigaMachine default"
+			},
+			{
+				"__type" : "textSnippet",
+				"children" : {
+					"__type" : "snippets",
+					"items" : [ ]
+				},
+				"createEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"createTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-14T23:47:19.34706+02:00"
+					}
+				},
+				"editEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"editTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-14T23:47:19.34706+02:00"
+					}
+				},
+				"uid" : {
+					"__type" : "uid",
+					"uidString" : "eGQoqqj0Q6Wd9c2yIBIqnQ=="
+				},
+				"paragraphStyle" : {
+					"__type" : "textStyle"
+				},
+				"string" : "**El experimento**: deja el diagrama de arriba a la vista, abre el panel de control (página anterior) y apaga BPLEN y SPREN. En el siguiente sondeo la flecha Agnus → Denise se apaga — y la pantalla del Amiga se queda negra, porque ese chorro de datos *era* la imagen. La flecha hacia Paula sigue encendida: DSKEN sigue activo. Vuelve a encenderlos y todo regresa. Apaga el maestro DMAEN y verás las tres flechas y los dos LED apagarse a la vez.\n\nLa máquina también lleva los **medidores de memoria**: cuánta memoria libre ve el sistema operativo, preguntándoselo a exec con `AvailMem` (LVO -216 — ojo: los flags de requisitos viajan en **d1**, no en d0). Los flags son los de `exec/memory.i`: `MEMF_CHIP=2`, `MEMF_FAST=4`, y `MEMF_LARGEST=$20000` pide el mayor bloque contiguo. Además lee de ExecBase los límites que exec encontró al arrancar: `MaxLocMem` (ExecBase+62, tope de la chip RAM) y `MaxExtMem` (ExecBase+78, tope de la slow RAM de $C00000). Fíjate en que en un A500 con Kickstart 1.3 la \"fast\" que reporta `MEMF_FAST` es en realidad la *slow RAM* de la ampliación A501 — no hay nada más rápido en la máquina, y el propio ExecBase vive allí:"
+			},
+			{
+				"__type" : "pharoSnippet",
+				"children" : {
+					"__type" : "snippets",
+					"items" : [ ]
+				},
+				"createEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"createTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-14T23:47:28.19793+02:00"
+					}
+				},
+				"editEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"editTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-14T23:47:28.19793+02:00"
+					}
+				},
+				"uid" : {
+					"__type" : "uid",
+					"uidString" : "ec/CVmq7QqS7r/nBINXpLw=="
+				},
+				"code" : "| maquina |\nmaquina := GT4AmigaMachine default.\nmaquina refresh.\nmaquina memoryGaugeRows collect: [ :fila | fila first -> fila second ]"
+			},
+			{
+				"__type" : "textSnippet",
+				"children" : {
+					"__type" : "snippets",
+					"items" : [ ]
+				},
+				"createEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"createTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-14T23:47:39.971917+02:00"
+					}
+				},
+				"editEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"editTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-14T23:47:39.971917+02:00"
+					}
+				},
+				"uid" : {
+					"__type" : "uid",
+					"uidString" : "Wn0C1VvERlqa/kjDYEn76A=="
+				},
+				"paragraphStyle" : {
+					"__type" : "textStyle"
+				},
+				"string" : "El **mapa de direcciones** distingue lo que es memoria de lo que solo *parece* memoria. Las regiones de RAM y ROM (`#chipRam`, `#slowRam`, `#rom`) se pueden volcar byte a byte con el opcode de lectura en bloque del monitor. Las regiones de registros (`#cia`, `#custom`) se niegan: leer un byte allí *hace cosas* — leer el registro de control de interrupciones de un CIA lo borra, y los registros custom exigen accesos de palabra (muchos son de solo escritura y devuelven basura al leerlos). El modelo codifica ese conocimiento en `isDumpable`, y la vista *Dump* sencillamente no existe en las regiones peligrosas.\n\nVolquemos el principio de la chip RAM. Los bytes 4–7 son la dirección más famosa del Amiga: la palabra larga en la posición 4 es el puntero a ExecBase, la única constante absoluta del sistema operativo — todo lo demás se encuentra a partir de ella:"
+			},
+			{
+				"__type" : "pharoSnippet",
+				"children" : {
+					"__type" : "snippets",
+					"items" : [ ]
+				},
+				"createEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"createTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-14T23:47:46.12088+02:00"
+					}
+				},
+				"editEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"editTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-14T23:47:46.12088+02:00"
+					}
+				},
+				"uid" : {
+					"__type" : "uid",
+					"uidString" : "sM7nfohcR1yKcKT4bbw+bA=="
+				},
+				"code" : "| chipRam |\nchipRam := GT4AmigaMachine default regionNamed: 'Chip RAM'.\nchipRam readWindow.\nchipRam"
+			},
+			{
+				"__type" : "textSnippet",
+				"children" : {
+					"__type" : "snippets",
+					"items" : [ ]
+				},
+				"createEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"createTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-14T23:47:52.783611+02:00"
+					}
+				},
+				"editEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"editTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-14T23:47:52.783611+02:00"
+					}
+				},
+				"uid" : {
+					"__type" : "uid",
+					"uidString" : "UMpS+sD7Ri6BdzDiESBDTA=="
+				},
+				"paragraphStyle" : {
+					"__type" : "textStyle"
+				},
+				"string" : "Y el principio de la ROM: la palabra mágica `$1111` con la que arranca toda Kickstart de 256 KB, seguida de un `JMP` (`$4EF9`) al código de reset. Cuando el 68000 despierta, es esto lo primero que ejecuta:"
+			},
+			{
+				"__type" : "pharoSnippet",
+				"children" : {
+					"__type" : "snippets",
+					"items" : [ ]
+				},
+				"createEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"createTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-14T23:47:59.329818+02:00"
+					}
+				},
+				"editEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"editTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-14T23:47:59.329818+02:00"
+					}
+				},
+				"uid" : {
+					"__type" : "uid",
+					"uidString" : "6IjPWXLjR5OM7GwbChU9vw=="
+				},
+				"code" : "| rom |\nrom := GT4AmigaMachine default regionNamed: 'Kickstart ROM'.\nrom readWindow.\nrom windowRows first"
+			},
+			{
+				"__type" : "textSnippet",
+				"children" : {
+					"__type" : "snippets",
+					"items" : [ ]
+				},
+				"createEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"createTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-14T23:48:07.152063+02:00"
+					}
+				},
+				"editEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"editTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-14T23:48:07.152063+02:00"
+					}
+				},
+				"uid" : {
+					"__type" : "uid",
+					"uidString" : "pjeZJBiqRLWRPxRqYvynWw=="
+				},
+				"paragraphStyle" : {
+					"__type" : "textStyle"
+				},
+				"string" : "Con esto el libro ya tiene su figura central: una máquina que se puede *tocar*. En los próximos capítulos recorreremos los subsistemas uno a uno — Copper, playfield, sprites, blitter, Paula — y cada uno partirá de aquí: de su caja en el diagrama y de su fila en la lista de subsistemas."
+			}
+		]
+	},
+	"createEmail" : {
+		"__type" : "email",
+		"emailString" : "<unknown>"
+	},
+	"createTime" : {
+		"__type" : "time",
+		"time" : {
+			"__type" : "dateAndTime",
+			"dateAndTimeString" : "2026-07-14T23:46:23.841357+02:00"
+		}
+	},
+	"editEmail" : {
+		"__type" : "email",
+		"emailString" : "<unknown>"
+	},
+	"editTime" : {
+		"__type" : "time",
+		"time" : {
+			"__type" : "dateAndTime",
+			"dateAndTimeString" : "2026-07-14T23:46:23.841357+02:00"
+		}
+	},
+	"pageType" : {
+		"__type" : "namedPage",
+		"title" : "La Máquina — Un Diagrama de Bloques Vivo"
+	},
+	"uid" : {
+		"__type" : "uuid",
+		"uuid" : "ade576b0-01cd-424b-a983-eeea462fb5f8"
+	}
+}
