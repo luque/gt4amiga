@@ -41,7 +41,7 @@ GT4AmigaBitSwitchElement >> buildSwitch [
 	dot := BlElement new
 		size: 16 @ 16;
 		geometry: BlCircleGeometry new;
-		border: (BlBorder paint: self borderColor width: 1);
+		border: (BlBorder paint: self borderColor width: self borderWidth);
 		yourself.
 	self addChild: dot.
 	self addChild: (BlTextElement new
@@ -58,8 +58,15 @@ GT4AmigaBitSwitchElement >> buildSwitch [
 { #category : #'accessing' }
 GT4AmigaBitSwitchElement >> borderColor [
 	^ kind = #locked
-		ifTrue: [ Color red muchDarker ]
+		ifTrue: [ Color red ]
 		ifFalse: [ Color darkGray ]
+]
+
+{ #category : #'accessing' }
+GT4AmigaBitSwitchElement >> borderWidth [
+	^ kind = #locked
+		ifTrue: [ 3 ]
+		ifFalse: [ 1 ]
 ]
 
 { #category : #'accessing' }

@@ -1,6 +1,9 @@
 Class {
 	#name : #GT4AmigaMonitorClient,
 	#superclass : #Object,
+	#instVars : [
+		'ioMutex'
+	],
 	#classVars : [
 		'Default'
 	],
@@ -201,6 +204,16 @@ GT4AmigaMonitorClient >> readResponsePayload: expectedLen from: aSocket [
 ]
 
 { #category : #'private' }
+GT4AmigaMonitorClient >> ioMutex [
+	"Serializes whole command round-trips over the one socket. Without it,
+	 two concurrent callers (a control panel poller, a page observer, a user
+	 snippet) interleave their frames and steal each other's response bytes,
+	 desynchronizing the protocol on both ends. Lazy: the Default instance
+	 may predate this variable."
+	^ ioMutex ifNil: [ ioMutex := Mutex new ]
+]
+
+{ #category : #'private' }
 GT4AmigaMonitorClient >> sendFrame: opcode payload: payload expect: expectedLen retryOnSilence: aBoolean [
 	"Send a framed command with retries. A NAK is ALWAYS safe to retry
 	 (the monitor verified the checksum failed BEFORE executing anything).
@@ -214,27 +227,30 @@ GT4AmigaMonitorClient >> sendFrame: opcode payload: payload expect: expectedLen 
 	 Socket-level EXCEPTIONS (ConnectionClosed etc., seen under sustained
 	 rapid use) are treated as silence too: without this, a background
 	 worker calling here died silently and live updates just stopped.
+	 The whole exchange runs inside ioMutex: concurrent callers (panel
+	 pollers, snippets) each get the socket for a full round-trip at a time.
 	 ^ payload ByteArray or nil."
 	| sock resp sawResponse |
-	2 timesRepeat: [
-		sock := [ self socket ] on: Error do: [ :e | nil ].
-		sock ifNil: [ ^ nil ].
-		sawResponse := false.
-		3 timesRepeat: [
-			resp := [
-				self sendCommand: (self frameFor: opcode payload: payload) to: sock.
-				self readResponsePayload: expectedLen from: sock ]
-					on: Error
-					do: [ :e | nil ].
-			resp == #nak
-				ifTrue: [ sawResponse := true ]
-				ifFalse: [
-					resp ifNotNil: [ ^ resp ].
-					aBoolean ifFalse: [ ^ nil ] ] ].
-		sawResponse ifTrue: [ ^ nil ].
-		"ronda entera en silencio: reconectar y reintentar una vez"
-		GT4FSUAERunner default disconnectSerial ].
-	^ nil
+	^ self ioMutex critical: [
+		2 timesRepeat: [
+			sock := [ self socket ] on: Error do: [ :e | nil ].
+			sock ifNil: [ ^ nil ].
+			sawResponse := false.
+			3 timesRepeat: [
+				resp := [
+					self sendCommand: (self frameFor: opcode payload: payload) to: sock.
+					self readResponsePayload: expectedLen from: sock ]
+						on: Error
+						do: [ :e | nil ].
+				resp == #nak
+					ifTrue: [ sawResponse := true ]
+					ifFalse: [
+						resp ifNotNil: [ ^ resp ].
+						aBoolean ifFalse: [ ^ nil ] ] ].
+			sawResponse ifTrue: [ ^ nil ].
+			"ronda entera en silencio: reconectar y reintentar una vez"
+			GT4FSUAERunner default disconnectSerial ].
+		nil ]
 ]
 
 { #category : #'deploying' }
