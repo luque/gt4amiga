@@ -1,0 +1,221 @@
+{
+	"__schema" : "4.1",
+	"__type" : "page",
+	"children" : {
+		"__type" : "snippets",
+		"items" : [
+			{
+				"__type" : "textSnippet",
+				"children" : {
+					"__type" : "snippets",
+					"items" : [ ]
+				},
+				"createEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"createTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-14T13:28:29.967257+02:00"
+					}
+				},
+				"editEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"editTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-14T13:28:29.967257+02:00"
+					}
+				},
+				"uid" : {
+					"__type" : "uid",
+					"uidString" : "IhK3UwWIReys+bCFtAfQsA=="
+				},
+				"paragraphStyle" : {
+					"__type" : "textStyle"
+				},
+				"string" : "En la página del chipset gobernamos el DMA escribiendo código: (regs at: 'DMACON') disable: 'BPLEN'. Eso está bien para aprender el protocolo SET/CLR, pero una máquina de verdad se merece un panel de control de verdad: una fila de interruptores, uno por bit, que reflejen el estado real del hardware y actúen sobre él con un clic. Eso es exactamente lo que construye GT4Amiga-Hardware-UI encima del modelo de registros: cada interruptor es un campo de bits de DMACON o INTENA, con su nombre del NDK y su descripción en el tooltip. Recuerda lo que hay debajo de cada clic: estos registros son #setClear, así que encender un bit es UNA escritura de 16 bits con $8000 OR máscara, y apagarlo es escribir la máscara a secas — nunca un valor completo. Ejecuta el snippet y toca la máquina:"
+			},
+			{
+				"__type" : "pharoSnippet",
+				"children" : {
+					"__type" : "snippets",
+					"items" : [ ]
+				},
+				"createEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"createTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-14T13:28:35.598764+02:00"
+					}
+				},
+				"editEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"editTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-14T13:28:35.598764+02:00"
+					}
+				},
+				"uid" : {
+					"__type" : "uid",
+					"uidString" : "5vkPS2uJSJeGG1VhaDWqEg=="
+				},
+				"code" : "GT4AmigaControlPanelElement onCatalog: GT4AmigaChipRegisters default"
+			},
+			{
+				"__type" : "textSnippet",
+				"children" : {
+					"__type" : "snippets",
+					"items" : [ ]
+				},
+				"createEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"createTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-14T13:28:45.622533+02:00"
+					}
+				},
+				"editEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"editTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-14T13:28:45.622533+02:00"
+					}
+				},
+				"uid" : {
+					"__type" : "uid",
+					"uidString" : "qaXK0jO0Re6y+Q46a7lNPA=="
+				},
+				"paragraphStyle" : {
+					"__type" : "textStyle"
+				},
+				"string" : "Por dentro, el panel respeta la regla de oro del proyecto: nada de I/O serie en el hilo de la interfaz. Un clic no habla con el Amiga: encola la acción y vuelve inmediatamente. Un único proceso trabajador en segundo plano drena la cola, hace la escritura, relee el registro por su contrapartida de lectura (DMACONR o INTENAR) y anuncia GT4AmigaRegistersRefreshed — y con ese anuncio los interruptores se repintan desde la caché, ya en el hilo de UI. Mientras está ocioso, el trabajador sondea los dos registros cada 2 segundos, así que el panel también refleja cambios hechos desde CUALQUIER otro sitio: prueba a ejecutar (GT4AmigaChipRegisters default at: 'DMACON') disable: 'BPLEN' desde otro snippet con el panel a la vista y verás el interruptor apagarse solo. Al cerrar el inspector, el trabajador se detiene: sin procesos huérfanos. La misma vista está disponible como pestaña Control Panel al inspeccionar el catálogo de registros."
+			},
+			{
+				"__type" : "textSnippet",
+				"children" : {
+					"__type" : "snippets",
+					"items" : [ ]
+				},
+				"createEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"createTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-14T13:28:58.430446+02:00"
+					}
+				},
+				"editEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"editTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-14T13:29:31.473253+02:00"
+					}
+				},
+				"uid" : {
+					"__type" : "uid",
+					"uidString" : "sounfZ3SSJ+JxYn9J4dL7g=="
+				},
+				"paragraphStyle" : {
+					"__type" : "textStyle"
+				},
+				"string" : "Experimentos guiados, con la ventana de FS-UAE a la vista. BPLEN: apaga el DMA de bitplanes y la pantalla se queda plana del color de fondo — el Workbench sigue vivo debajo, solo ha dejado de dibujarse; vuelve a encenderlo. SPREN: apaga el DMA de sprites y el puntero del ratón desaparece (¡el puntero del Amiga es un sprite hardware!). COPEN es el más instructivo y el más aparatoso: sin Copper nadie reposiciona los punteros de bitplane al inicio de cada frame, así que el DMA de bitplanes sigue avanzando por la memoria y la pantalla se convierte en basura desplazándose — enciéndelo de nuevo y el Copper se recupera en el siguiente vblank, porque el hardware recarga su PC desde COP1LC en cada frame. Y DMAEN, el interruptor maestro: lo corta todo de golpe (pantalla congelada o negra) y todo vuelve al reactivarlo — el enlace serie no usa DMA, así que el monitor nunca deja de escucharte. Fíjate también en los dos LEDs de DMACON: BBUSY y BZERO no son conmutables — los escribe el Blitter, tú solo los miras."
+			},
+			{
+				"__type" : "textSnippet",
+				"children" : {
+					"__type" : "snippets",
+					"items" : [ ]
+				},
+				"createEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"createTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-14T13:29:17.583084+02:00"
+					}
+				},
+				"editEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"editTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-14T13:29:17.583084+02:00"
+					}
+				},
+				"uid" : {
+					"__type" : "uid",
+					"uidString" : "MML15BmSQVG0DAxytNn83g=="
+				},
+				"paragraphStyle" : {
+					"__type" : "textStyle"
+				},
+				"string" : "¿Y por qué hay interruptores con el borde rojo que no responden al clic? Porque el panel controla la misma máquina de la que depende. El monitor que atiende estos comandos vive del puerto serie, y el puerto serie del Amiga vive de interrupciones: RBF (buffer de recepción lleno) y TBE (buffer de transmisión vacío) en INTENA, más INTEN, el master, y PORTS, del que cuelgan teclado y timers vía CIA-A. Apagar cualquiera de ellos sería serrar la rama sobre la que estamos sentados: el monitor enmudecería y solo un reboot lo devolvería. El panel los muestra — con su estado real — pero los bloquea, y ese bloqueo es una lección del AHRM en sí misma: en el Amiga no hay red de seguridad; el que escribe en INTENA decide si el sistema sigue existiendo. El siguiente paso del Interactive Hardware Reference es subir un nivel: el modelo GT4AmigaMachine con el diagrama de bloques completo — chips, buses y memorias — donde estos bits de DMACON iluminarán las flechas del bus que habilitan."
+			}
+		]
+	},
+	"createEmail" : {
+		"__type" : "email",
+		"emailString" : "<unknown>"
+	},
+	"createTime" : {
+		"__type" : "time",
+		"time" : {
+			"__type" : "dateAndTime",
+			"dateAndTimeString" : "2026-07-14T13:28:17.982733+02:00"
+		}
+	},
+	"editEmail" : {
+		"__type" : "email",
+		"emailString" : "<unknown>"
+	},
+	"editTime" : {
+		"__type" : "time",
+		"time" : {
+			"__type" : "dateAndTime",
+			"dateAndTimeString" : "2026-07-14T13:28:17.982733+02:00"
+		}
+	},
+	"pageType" : {
+		"__type" : "namedPage",
+		"title" : "El Panel de Control — DMACON e INTENA con Interruptores"
+	},
+	"uid" : {
+		"__type" : "uuid",
+		"uuid" : "5f438466-fdfd-4cde-9d2d-1d92bca70522"
+	}
+}
