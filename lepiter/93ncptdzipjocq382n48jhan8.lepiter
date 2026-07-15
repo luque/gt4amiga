@@ -218,7 +218,7 @@
 				"paragraphStyle" : {
 					"__type" : "textStyle"
 				},
-				"string" : "El experimento: abre la figura de arriba y, sin cerrarla, evalúa el snippet siguiente. Apaga el DMA de bitplanes durante cinco segundos — la pantalla del emulador se queda negra, porque Denise deja de recibir datos — y en la figura los ~80 slots azules se vuelven pálidos: durante esos cinco segundos son slots libres, y el 68000 (y el blitter) corren notablemente más rápido. Es la lección de la figura 6-12 del AHRM al revés: un display hires de 4 bitplanes necesita TODOS los slots durante el display y expulsa al 68000 del bus; apagar BPLEN se los devuelve todos. (El Workbench hires de 2 planos que estás viendo usa 2 de cada 4 slots de la ventana de fetch.)"
+				"string" : "El experimento: abre la figura de arriba y, sin cerrarla, evalúa el snippet siguiente. Apaga el DMA de bitplanes durante cinco segundos — la pantalla del emulador se queda negra, porque Denise deja de recibir datos — y en la figura los ~80 slots azules se vuelven pálidos: durante esos cinco segundos son slots libres, y el 68000 (y el blitter) corren notablemente más rápido. Es la lección de la figura 6-12 del AHRM al revés: un display hires de 4 bitplanes necesita TODOS los slots durante el display y expulsa al 68000 del bus; apagar BPLEN se los devuelve todos. (El Workbench hires de 2 planos que estás viendo usa 2 de cada 4 slots de la ventana de fetch.) Ojo al fork del snippet: no es decorativo. Un snippet se evalúa en el hilo de UI de GToolkit — si lo bloqueáramos cinco segundos con el Delay, GT entero se congelaría, ningún repintado de Bloc podría ejecutarse, y al despertar BPLEN ya estaría encendido de nuevo: verías el apagón en el emulador pero la figura jamás palidecería. Con el fork la UI sigue pulsando, el worker de la figura sondea DMACON cada 2 segundos y el cambio se ve. Es la misma regla que gobierna todo el proyecto: nada de I/O serie (ni esperas) en el hilo de UI."
 			},
 			{
 				"__type" : "pharoSnippet",
@@ -245,14 +245,14 @@
 					"__type" : "time",
 					"time" : {
 						"__type" : "dateAndTime",
-						"dateAndTimeString" : "2026-07-15T23:52:23.259649+02:00"
+						"dateAndTimeString" : "2026-07-16T00:10:31.185509+02:00"
 					}
 				},
 				"uid" : {
 					"__type" : "uid",
 					"uidString" : "pNk+AKxtQba8uEzK18Wm8Q=="
 				},
-				"code" : "| dmacon |\ndmacon := GT4AmigaMachine default catalog at: 'DMACON'.\ndmacon disable: 'BPLEN'.\n(Delay forSeconds: 5) wait.\ndmacon enable: 'BPLEN'.\ndmacon read"
+				"code" : "| dmacon |\ndmacon := GT4AmigaMachine default catalog at: 'DMACON'.\n[ dmacon disable: 'BPLEN'.\n(Delay forSeconds: 5) wait.\ndmacon enable: 'BPLEN'.\ndmacon read ] fork"
 			},
 			{
 				"__type" : "textSnippet",
