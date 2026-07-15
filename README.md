@@ -250,6 +250,7 @@ The book pages will appear in the Lepiter browser.
 | **La Máquina — Un Diagrama de Bloques Vivo** | The whole A500 as one model: clickable block diagram with DMA arrows lit from the live DMACON, physical and functional decompositions, memory map with windowed hexdumps, and live memory gauges via `AvailMem` |
 | **Los Time Slots de DMA — La Línea de Barrido en Vivo** | The AHRM's centerpiece figure alive: 227 color clocks per scan line, who owns each slot, and the bitplane fetch window drawn from the machine's real BPLCON0/DDFSTRT/DDFSTOP — read out of Workbench's own copper list |
 | **Copper Bars — Rasterbars de la Demoscene** | The Amiga's signature demoscene effect: three sine-shaded rasterbars built in Pharo (pure `COLOR00` + WAIT/MOVE), block-written to chip RAM, animated over the bridge, and the Workbench restored by software via `GfxBase->LOFlist` |
+| **Copper Bars Nativas — 50 FPS en el Blanking Vertical** | The same effect the demoscene way: a native 68k program (opcode `X`) animating the bars at 50 fps in the vertical blank — `DATA_C` chip section, `WaitTOF` pacing, precomputed sine table, WAIT-position rewriting — plus the X-stub register-convention lesson (`movem.l d2-d7/a2-a6`) learned from a real "task held" |
 
 ## Quick start (Playground)
 

@@ -1,0 +1,221 @@
+{
+	"__schema" : "4.1",
+	"__type" : "page",
+	"children" : {
+		"__type" : "snippets",
+		"items" : [
+			{
+				"__type" : "textSnippet",
+				"children" : {
+					"__type" : "snippets",
+					"items" : [ ]
+				},
+				"createEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"createTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-16T01:18:09.936203+02:00"
+					}
+				},
+				"editEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"editTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-16T01:18:09.936203+02:00"
+					}
+				},
+				"uid" : {
+					"__type" : "uid",
+					"uidString" : "qbghfQO7RwSJYINADThP2Q=="
+				},
+				"paragraphStyle" : {
+					"__type" : "textStyle"
+				},
+				"string" : "En [[Copper Bars — Rasterbars de la Demoscene]] las barras se movían a ~1,3 fps: cada frame cruzaba el puente serie entero. Aquí está la secuela prometida — el mismo efecto como lo hacía una demo de verdad: un programa 68000 que corre EN el Amiga, lanzado con el opcode X del monitor, y que anima las barras a 50 fps reescribiendo la copper list durante el blanking vertical, a velocidad de bus. Ningún byte cruza el cable por frame. Las técnicas nuevas son las clásicas del oficio: la lista vive en una sección DATA_C (el cargador de AmigaDOS la coloca en chip RAM — la única memoria que el Copper puede leer — sin un solo AllocMem); graphics/WaitTOF marca el compás (una llamada que duerme el proceso hasta el siguiente frame: 50 Hz exactos en PAL, sin robar CPU); el seno se precalcula en una tabla de 64 bytes con signo — el arma secreta de toda demo en una máquina sin FPU; y la animación NO reescribe colores: cada barra conserva su degradado y el 68000 solo reescribe las posiciones de sus 31 WAITs (93 words por frame, ~30 microsegundos). Un detalle de diseño que en la versión Pharo no importaba: aquí cada barra oscila en su propia banda vertical y nunca cruza a la vecina, porque una copper list debe quedar siempre ordenada respecto al haz — un WAIT a una línea ya pasada no se dispara hasta el siguiente frame y se traga todo lo que venga detrás."
+			},
+			{
+				"__type" : "textSnippet",
+				"children" : {
+					"__type" : "snippets",
+					"items" : [ ]
+				},
+				"createEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"createTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-16T01:18:21.097477+02:00"
+					}
+				},
+				"editEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"editTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-16T01:18:21.097477+02:00"
+					}
+				},
+				"uid" : {
+					"__type" : "uid",
+					"uidString" : "Zb5oEH+WRCadsN8eF53+7g=="
+				},
+				"paragraphStyle" : {
+					"__type" : "textStyle"
+				},
+				"string" : "Y una lección que costó una ventana de \"Software error - task held\": el programa arranca y termina con movem.l d2-d7/a2-a6. No es decoración — es el contrato del stub que nos lanza. El opcode X ejecuta el programa vía un stub que conserva sus propios registros a través del jsr (a5 = DOSBase, d5 = el fichero de captura de la salida), contando con la convención de AmigaOS: d0-d1/a0-a1 son de quien los quiera, d2-d7/a2-a6 se preservan. La primera versión de este programa usaba a5 para GfxBase sin salvarlo; al retornar, el stub hizo Close() con a5 apuntando a graphics.library — un salto por un vector aleatorio y tarea retenida. La convención de registros no es una cortesía: es la interfaz."
+			},
+			{
+				"__type" : "amiga68kSnippet",
+				"children" : {
+					"__type" : "snippets",
+					"items" : [ ]
+				},
+				"createEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"createTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-16T01:18:56.288766+02:00"
+					}
+				},
+				"editEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"editTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-16T01:18:56.288766+02:00"
+					}
+				},
+				"uid" : {
+					"__type" : "uid",
+					"uidString" : "HiY7aotRS167R0OKoq9o7w=="
+				},
+				"code" : "; Copper bars nativas: tres rasterbars animadas por el 68000 a 50 fps.\n; OS-friendly: WaitTOF marca el compas, la copper list vive en una\n; seccion DATA_C (el cargador la coloca en chip RAM), y al salir se\n; restaura la lista del sistema desde GfxBase->LOFlist.\n\n        SECTION code,CODE\n\nstart:\n        movem.l d2-d7/a2-a6,-(sp)       ; convencion del stub de X: el\n                                        ; programa preserva d2-d7/a2-a6\n        move.l  4.w,a6                  ; ExecBase\n        lea     gfxname(pc),a1\n        jsr     -408(a6)                ; OldOpenLibrary\n        tst.l   d0\n        beq     salir\n        move.l  d0,a5                   ; GfxBase\n\n        bsr     construir               ; rellena los WAIT+MOVE de las barras\n        bsr     animar                  ; posiciones del frame 0\n\n        lea     $DFF000,a4\n        move.w  #$0100,$96(a4)          ; BPLEN off\n        move.w  #$0080,$96(a4)          ; COPEN off\n        move.l  #clist,$80(a4)          ; COP1LC (H y L de una vez)\n        move.w  #$8080,$96(a4)          ; COPEN on\n\n        move.w  #500-1,d7               ; 500 frames = 10 s en PAL\nbucle:\n        move.l  a5,a6\n        jsr     -270(a6)                ; WaitTOF: el metronomo, un tick por frame\n        bsr     animar\n        dbf     d7,bucle\n\n        lea     $DFF000,a4\n        move.w  #$0080,$96(a4)          ; COPEN off\n        move.l  50(a5),$80(a4)          ; COP1LC = GfxBase->LOFlist\n        move.w  #$8180,$96(a4)          ; BPLEN y COPEN de vuelta\n\n        move.l  a5,a1\n        move.l  4.w,a6\n        jsr     -414(a6)                ; CloseLibrary\nsalir:\n        movem.l (sp)+,d2-d7/a2-a6\n        moveq   #0,d0\n        rts\n\n; --- construir: 31 pares WAIT+MOVE por barra; el color sale de la\n;     tabla de sombras segun la distancia al centro de la barra\nconstruir:\n        lea     barras(pc),a3\n        moveq   #3-1,d3\n.barra: move.l  (a3)+,a0                ; bloque destino en la copper list\n        move.l  (a3)+,a1                ; tabla de 16 sombras\n        addq.l  #2,a3                   ; saltar la base (la usa animar)\n        moveq   #0,d0                   ; linea 0..30\n.linea: move.w  d0,d1\n        sub.w   #15,d1\n        bpl.s   .abs\n        neg.w   d1                      ; d1 = distancia al centro (0..15)\n.abs:   move.w  #$0001,(a0)+            ; WAIT (la posicion la pone animar)\n        move.w  #$FF00,(a0)+\n        move.w  #$0180,(a0)+            ; MOVE COLOR00\n        add.w   d1,d1\n        move.w  (a1,d1.w),(a0)+         ; la sombra de esta linea\n        addq.w  #1,d0\n        cmp.w   #31,d0\n        blt.s   .linea\n        dbf     d3,.barra\n        rts\n\n; --- animar: fase += velocidad, posicion = base + seno[fase],\n;     y reescribir los 31 WAITs de cada barra (el unico trabajo por frame)\nanimar:\n        lea     barras(pc),a3\n        lea     estado,a2\n        moveq   #3-1,d3\n.barra: move.l  (a3)+,a0                ; bloque de la barra\n        addq.l  #4,a3                   ; saltar la tabla de sombras\n        move.w  (a3)+,d4                ; base vertical (centro - 15)\n        move.w  (a2),d0                 ; fase\n        add.w   2(a2),d0                ; fase += velocidad\n        and.w   #63,d0\n        move.w  d0,(a2)\n        addq.l  #4,a2\n        lea     seno(pc),a1\n        move.b  (a1,d0.w),d1\n        ext.w   d1\n        add.w   d4,d1                   ; linea de arranque de la barra\n        lsl.w   #8,d1\n        addq.w  #1,d1                   ; WAIT word = (linea<<8)|1\n        moveq   #31-1,d2\n.wait:  move.w  d1,(a0)\n        addq.l  #8,a0                   ; al WAIT del siguiente par\n        add.w   #$0100,d1               ; linea + 1\n        dbf     d2,.wait\n        dbf     d3,.barra\n        rts\n\n; --- por barra: bloque en la lista, tabla de sombras, base vertical.\n;     Cada barra oscila en su propia banda y NUNCA cruza a la vecina:\n;     la copper list debe quedar siempre ordenada respecto al haz.\nbarras: dc.l    barra1,roja\n        dc.w    65                      ; centro 80, banda 49-111\n        dc.l    barra2,dorada\n        dc.w    135                     ; centro 150, banda 119-181\n        dc.l    barra3,azul\n        dc.w    205                     ; centro 220, banda 189-251\n\n; sombras por distancia al centro (0=centro..15=borde): 15*sin(t*pi/2)\nroja:   dc.w    $F22,$F22,$F22,$E22,$E22,$D22,$C22,$B22\n        dc.w    $A22,$911,$811,$611,$511,$300,$200,$000\ndorada: dc.w    $FB2,$FB2,$FB2,$EB1,$EB1,$DA1,$C91,$B81\n        dc.w    $A81,$971,$861,$651,$541,$320,$220,$000\nazul:   dc.w    $47F,$47F,$47F,$46E,$46E,$36D,$35C,$35B\n        dc.w    $35A,$249,$248,$236,$125,$113,$112,$000\n\n; la tabla de senos: 64 entradas, amplitud 16, bytes con signo.\n; El arma secreta de toda demo: sin FPU, el seno se precalcula.\nseno:   dc.b    0,2,3,5,6,8,9,10,11,12,13,14,15,15,16,16\n        dc.b    16,16,16,15,15,14,13,12,11,10,9,8,6,5,3,2\n        dc.b    0,-2,-3,-5,-6,-8,-9,-10,-11,-12,-13,-14,-15,-15,-16,-16\n        dc.b    -16,-16,-16,-15,-15,-14,-13,-12,-11,-10,-9,-8,-6,-5,-3,-2\n\ngfxname:\n        dc.b    'graphics.library',0\n        EVEN\n\n; --- la copper list: DATA_C = el cargador la pone en CHIP RAM,\n;     que es la unica memoria que el Copper puede leer\n        SECTION data,DATA_C\n\nclist:  dc.w    $0180,$0000             ; COLOR00 negro en lo alto del frame\nbarra1: ds.w    4*31\nbarra2: ds.w    4*31\nbarra3: ds.w    4*31\n        dc.w    $FFFF,$FFFE             ; fin de lista\n\nestado: dc.w    0,1                     ; fase y velocidad, barra roja\n        dc.w    21,2                    ; dorada (desfasada)\n        dc.w    43,3                    ; azul"
+			},
+			{
+				"__type" : "textSnippet",
+				"children" : {
+					"__type" : "snippets",
+					"items" : [ ]
+				},
+				"createEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"createTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-16T01:19:13.988066+02:00"
+					}
+				},
+				"editEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"editTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-16T01:19:13.988066+02:00"
+					}
+				},
+				"uid" : {
+					"__type" : "uid",
+					"uidString" : "rEMkG4szR5OuVm4C8KNmaQ=="
+				},
+				"paragraphStyle" : {
+					"__type" : "textStyle"
+				},
+				"string" : "Pulsa el botón de ejecutar del snippet (o usa GT4FSUAERunner default run: con el resultado del ensamblado): el programa viaja a GT4A:incoming/program, el monitor lo lanza como proceso propio con el opcode X, y durante diez segundos las tres barras rebotan sedosas a 50 fps — compáralo con la versión remota. Mientras tanto el monitor sigue atendiendo: puedes abrir [[Los Time Slots de DMA — La Línea de Barrido en Vivo]] o el panel de DMACON DURANTE la animación y ver BPLEN apagado y el Copper trabajando. Al terminar, el programa restaura el Workbench él solo — COP1LC de vuelta a GfxBase->LOFlist, DMACON $8180 — la misma técnica del capítulo anterior, ahora en cuatro instrucciones de ensamblador. Fíjate en la aritmética del bucle interior de animar: el WAIT de la línea siguiente es el de la anterior más $0100, porque la línea vive en el byte alto de la primera word — reescribir una barra entera son 31 move.w con el mismo registro."
+			},
+			{
+				"__type" : "textSnippet",
+				"children" : {
+					"__type" : "snippets",
+					"items" : [ ]
+				},
+				"createEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"createTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-16T01:19:26.495679+02:00"
+					}
+				},
+				"editEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"editTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-16T01:19:26.495679+02:00"
+					}
+				},
+				"uid" : {
+					"__type" : "uid",
+					"uidString" : "d0kJNEqeS7SGwLMatb4C1g=="
+				},
+				"paragraphStyle" : {
+					"__type" : "textStyle"
+				},
+				"string" : "Las dos versiones del efecto son las dos mitades del proyecto. La versión Pharo calcula cada frame en GToolkit: puedes moldear la fórmula del degradado, inspeccionar la lista, reevaluar — pero cada frame cuesta un viaje por el puente serie (~0,8 s). La versión nativa es el producto terminado: 50 fps clavados, cero tráfico, y el 68000 invierte ~30 microsegundos por frame — menos del 0,2% de su tiempo — porque el Copper hace todo el trabajo de pintar. Prototipa en Pharo, congela en ensamblador: ese es el flujo que este libro quiere enseñar."
+			}
+		]
+	},
+	"createEmail" : {
+		"__type" : "email",
+		"emailString" : "<unknown>"
+	},
+	"createTime" : {
+		"__type" : "time",
+		"time" : {
+			"__type" : "dateAndTime",
+			"dateAndTimeString" : "2026-07-16T01:17:50.923175+02:00"
+		}
+	},
+	"editEmail" : {
+		"__type" : "email",
+		"emailString" : "<unknown>"
+	},
+	"editTime" : {
+		"__type" : "time",
+		"time" : {
+			"__type" : "dateAndTime",
+			"dateAndTimeString" : "2026-07-16T01:17:50.923175+02:00"
+		}
+	},
+	"pageType" : {
+		"__type" : "namedPage",
+		"title" : "Copper Bars Nativas — 50 FPS en el Blanking Vertical"
+	},
+	"uid" : {
+		"__type" : "uuid",
+		"uuid" : "0a206c0c-799b-4113-8b7b-1ef57a6bbfc6"
+	}
+}
