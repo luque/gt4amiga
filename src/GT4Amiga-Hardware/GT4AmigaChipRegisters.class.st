@@ -10,6 +10,8 @@ Usage:
 
 refresh announces GT4AmigaRegistersRefreshed through my announcer, so the registers gtView updates itself after a background refresh. The COLORxx registers derive their value from the Workbench ViewPort ColorMap via graphics GetRGB4 (the copper rewrites the color hardware every frame, so that IS the truth); the catalog caches the ColorMap pointer after the first lookup.
 
+The write-only display registers (BPLCON0/1/2, DDFSTRT/DDFSTOP, DIWSTRT/DIWSTOP, BPL1MOD/BPL2MOD) derive their value from the LIVE COPPER LIST instead: Workbench rewrites them every frame from GfxBase->LOFlist, so the first MOVE to each register in that list IS the machine's effective display state. The catalog discovers GfxBase once per session (AllocMem a scratch name string, OldOpenLibrary, CloseLibrary right away - the monitor holds graphics.library open since startup, so the base cannot expunge - FreeMem) and snapshots the copper list through one block read, cached for a second so a full refresh scans one snapshot instead of fetching it once per derived register.
+
 I am the model layer only: I hold no Bloc code. Inspector views come from gtView methods here and on the register/field objects, so any snippet evaluating to me (or to one register) gets the live drill-down for free.
 "
 Class {
@@ -19,7 +21,10 @@ Class {
 		'monitor',
 		'registers',
 		'announcer',
-		'wbColorMap'
+		'wbColorMap',
+		'gfxBase',
+		'copperSnapshot',
+		'copperSnapshotAt'
 	],
 	#classVars : [
 		'Default'
@@ -102,6 +107,97 @@ GT4AmigaChipRegisters >> rgb4At: anIndex [
 	v := monitor callLibrary: 3 lvo: -582 a0: cmap a1: 0 d0: anIndex d1: 0 d2: 0 d3: 0.
 	(v isNil or: [ v = 16rFFFFFFFF ]) ifTrue: [ ^ nil ].
 	^ v
+]
+
+{ #category : #'reading' }
+GT4AmigaChipRegisters >> gfxBase [
+	"graphics.library base, discovered once per session: AllocMem a scratch
+	 buffer, block-write the library name into it, OldOpenLibrary (exec LVO
+	 -408), CloseLibrary right away (the monitor holds graphics.library open
+	 since startup, so the base cannot expunge), FreeMem the buffer."
+	| buf base |
+	gfxBase ifNotNil: [ ^ gfxBase ].
+	buf := monitor callLibrary: 0 lvo: -198 a0: 0 a1: 0 d0: 24 d1: 16r10002 d2: 0 d3: 0.
+	(buf isNil or: [ buf = 0 ]) ifTrue: [ ^ nil ].
+	monitor writeMemoryAt: buf bytes: 'graphics.library' asByteArray , #[0].
+	base := monitor callLibrary: 0 lvo: -408 a0: 0 a1: buf d0: 0 d1: 0 d2: 0 d3: 0.
+	(base isNil or: [ base = 0 ])
+		ifFalse: [ monitor callLibrary: 0 lvo: -414 a0: 0 a1: base d0: 0 d1: 0 d2: 0 d3: 0 ].
+	monitor callLibrary: 0 lvo: -210 a0: 0 a1: buf d0: 24 d1: 0 d2: 0 d3: 0.
+	(base isNil or: [ base = 0 ]) ifTrue: [ ^ nil ].
+	^ gfxBase := base
+]
+
+{ #category : #'reading' }
+GT4AmigaChipRegisters >> copperListBytes [
+	"A snapshot of the copper list the machine is displaying right now
+	 (GfxBase->LOFlist, offset 50 per graphics/gfxbase.i), fetched with one
+	 block read and cached for a second, so a full refresh scans one
+	 snapshot instead of fetching the list once per derived register.
+	 Serial I/O - background only."
+	| gfx lof |
+	(copperSnapshot notNil
+		and: [ copperSnapshotAt notNil
+		and: [ DateAndTime now - copperSnapshotAt < 1 second ] ])
+			ifTrue: [ ^ copperSnapshot ].
+	gfx := self gfxBase.
+	gfx ifNil: [ ^ nil ].
+	lof := monitor readMemoryAt: gfx + 50 size: 4.
+	(lof isNil or: [ lof = 0 ]) ifTrue: [ ^ nil ].
+	^ (monitor readMemoryAt: lof length: 1024)
+		ifNotNil: [ :bytes |
+			copperSnapshotAt := DateAndTime now.
+			copperSnapshot := bytes ]
+]
+
+{ #category : #'reading' }
+GT4AmigaChipRegisters >> copperMovesTo: anOffset [
+	"Every value the live copper list MOVEs into the custom register at
+	 anOffset, in beam order. A copper MOVE is a word pair with bit 0 of
+	 the first word clear (the register offset in bits 8-1); scanning
+	 stops at the end-of-list WAIT $FFFF,$FFFE."
+	| bytes moves i w1 w2 |
+	moves := OrderedCollection new.
+	bytes := self copperListBytes.
+	bytes ifNil: [ ^ moves ].
+	i := 1.
+	[ i + 3 <= bytes size ] whileTrue: [
+		w1 := ((bytes at: i) bitShift: 8) + (bytes at: i + 1).
+		w2 := ((bytes at: i + 2) bitShift: 8) + (bytes at: i + 3).
+		(w1 = 16rFFFF and: [ w2 = 16rFFFE ]) ifTrue: [ ^ moves ].
+		((w1 bitAnd: 1) = 0 and: [ (w1 bitAnd: 16r1FE) = anOffset ])
+			ifTrue: [ moves add: w2 ].
+		i := i + 4 ].
+	^ moves
+]
+
+{ #category : #'reading' }
+GT4AmigaChipRegisters >> copperMoveTo: anOffset [
+	"The first value the live copper list MOVEs into the register at
+	 anOffset, or nil when the list does not touch it. Right for the
+	 registers Workbench writes once per frame (DDF/DIW/modulos) - NOT
+	 for BPLCON0, which the list also writes with zero planes during the
+	 blanking preamble and postamble; see installCopperDerivations."
+	^ (self copperMovesTo: anOffset) ifEmpty: [ nil ] ifNotEmpty: [ :moves | moves first ]
+]
+
+{ #category : #'private - building' }
+GT4AmigaChipRegisters >> installCopperDerivations [
+	"The write-only display registers are rewritten by Workbench's copper
+	 list every frame, so the MOVEs to them in that list ARE the machine's
+	 effective display state. BPLCON0 is special: the list also writes it
+	 with zero planes during the blanking preamble and postamble, so the
+	 display's working value is the move with the most planes (with several
+	 dragged screens: the deepest one)."
+	#('DIWSTRT' 'DIWSTOP' 'DDFSTRT' 'DDFSTOP'
+	  'BPLCON1' 'BPLCON2' 'BPL1MOD' 'BPL2MOD') do: [ :aName |
+		| off |
+		off := (registers at: aName) offset.
+		(registers at: aName) derivation: [ :cat | cat copperMoveTo: off ] ].
+	(registers at: 'BPLCON0') derivation: [ :cat |
+		(cat copperMovesTo: 16r100)
+			ifEmpty: [ nil ]
+			ifNotEmpty: [ :moves | moves detectMax: [ :v | v bitAnd: 16r7000 ] ] ]
 ]
 
 { #category : #'private - building' }
@@ -269,7 +365,8 @@ GT4AmigaChipRegisters >> buildRegisters [
 	self addRegister: 'BPL2MOD' offset: 16r10A readOffset: nil mode: #write
 		description: 'Modulo for even bitplanes (bytes added after each row)' fields: #().
 
-	self buildColorRegisters
+	self buildColorRegisters.
+	self installCopperDerivations
 ]
 
 { #category : #'private - building' }
