@@ -1,0 +1,326 @@
+{
+	"__schema" : "4.1",
+	"__type" : "page",
+	"children" : {
+		"__type" : "snippets",
+		"items" : [
+			{
+				"__type" : "textSnippet",
+				"children" : {
+					"__type" : "snippets",
+					"items" : [ ]
+				},
+				"createEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"createTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-15T23:51:22.748105+02:00"
+					}
+				},
+				"editEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"editTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-15T23:51:22.748105+02:00"
+					}
+				},
+				"uid" : {
+					"__type" : "uid",
+					"uidString" : "MkB92odJReiW243hollsXA=="
+				},
+				"paragraphStyle" : {
+					"__type" : "textStyle"
+				},
+				"string" : "Cada línea de barrido del Amiga dura unos 63 microsegundos y contiene 227,5 \"color clocks\": ciclos de acceso a memoria de 280 ns. Ese es el recurso más disputado de la máquina, porque la chip RAM tiene UN solo bus y todos lo quieren: el refresco de memoria, el disco, los cuatro canales de audio, los ocho sprites, los bitplanes del display, el Copper, el blitter y el propio 68000. La figura 6-9 del Amiga Hardware Reference Manual — la figura central del manual — es el mapa de ese reparto: qué slot de la línea pertenece a qué dispositivo. Aquí no es una lámina impresa: es un elemento vivo, parametrizado por el estado real de DMACON, BPLCON0, DDFSTRT y DDFSTOP de la máquina que está corriendo al lado."
+			},
+			{
+				"__type" : "pharoSnippet",
+				"children" : {
+					"__type" : "snippets",
+					"items" : [ ]
+				},
+				"createEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"createTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-15T23:51:28.888365+02:00"
+					}
+				},
+				"editEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"editTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-15T23:51:28.888365+02:00"
+					}
+				},
+				"uid" : {
+					"__type" : "uid",
+					"uidString" : "1UTMQAoKQ7qKslqs6ya0aQ=="
+				},
+				"code" : "GT4AmigaDMATimelineElement onMachine: GT4AmigaMachine default"
+			},
+			{
+				"__type" : "textSnippet",
+				"children" : {
+					"__type" : "snippets",
+					"items" : [ ]
+				},
+				"createEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"createTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-15T23:51:42.094473+02:00"
+					}
+				},
+				"editEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"editTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-15T23:51:42.094473+02:00"
+					}
+				},
+				"uid" : {
+					"__type" : "uid",
+					"uidString" : "WZiH7yTfS9OMasv7rkPkTQ=="
+				},
+				"paragraphStyle" : {
+					"__type" : "textStyle"
+				},
+				"string" : "Cómo leer la figura: las dos filas son UNA línea de barrido plegada ($00-$71 arriba, $72-$E2 abajo). Las asignaciones fijas van todas en slots IMPARES: refresco de memoria en $01-$07 (siempre ocupados), DMA de disco en $09-$0D, los cuatro canales de audio en $0F-$15 y los ocho sprites — dos palabras cada uno — en $17-$35. Los slots PARES son la otra mitad del truco: el 68000 pasa la mitad de cada instrucción haciendo trabajo interno y la otra mitad accediendo a memoria, así que dándole solo los ciclos pares corre a toda velocidad como si el bus fuera suyo (figura 6-10 del AHRM). Los azules son la ventana de fetch de los bitplanes, que sale de DDFSTRT/DDFSTOP con el orden de la figura 6-11: en lores '- 4 6 2 - 3 5 1' (los planos 1-4 usan impares; los planos 5 y 6 le ROBAN los pares al 68000), en hires '4 2 3 1' en todos los slots. Un canal apagado en DMACON se pinta pálido: el slot queda reservado pero abierto al Copper, al blitter y al 68000. Pasa el ratón por un slot y la línea de estado lo cuenta; haz clic y se abre su registro en el inspector."
+			},
+			{
+				"__type" : "textSnippet",
+				"children" : {
+					"__type" : "snippets",
+					"items" : [ ]
+				},
+				"createEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"createTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-15T23:51:57.61978+02:00"
+					}
+				},
+				"editEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"editTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-15T23:51:57.61978+02:00"
+					}
+				},
+				"uid" : {
+					"__type" : "uid",
+					"uidString" : "E7xRhdq7QiaiBMviGohoIQ=="
+				},
+				"paragraphStyle" : {
+					"__type" : "textStyle"
+				},
+				"string" : "¿De dónde salen BPLCON0, DDFSTRT y DDFSTOP, si son registros write-only que el hardware jamás contesta? De la copper list. El Workbench reescribe los registros de display en cada frame desde su propia lista (GfxBase->LOFlist), así que la verdad sobre un registro que no se puede leer vive en la memoria de la lista que lo escribe. El catálogo la lee con una transferencia en bloque, la escanea buscando instrucciones MOVE y deriva de ahí el valor efectivo — igual que los COLORxx se derivan del ColorMap vía GetRGB4. Hay una trampa deliciosa: la lista escribe BPLCON0 TRES veces por frame — planos a cero en el preámbulo del blanking vertical, el valor real al empezar el display, y planos a cero otra vez al acabar — así que el catálogo elige el MOVE con más planos. Míralo tú mismo:"
+			},
+			{
+				"__type" : "pharoSnippet",
+				"children" : {
+					"__type" : "snippets",
+					"items" : [ ]
+				},
+				"createEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"createTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-15T23:52:04.441651+02:00"
+					}
+				},
+				"editEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"editTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-15T23:52:04.441651+02:00"
+					}
+				},
+				"uid" : {
+					"__type" : "uid",
+					"uidString" : "TqCqX4FwRxeM9mOtttSs5A=="
+				},
+				"code" : "| catalogo |\ncatalogo := GT4AmigaMachine default catalog.\n(catalogo copperMovesTo: 16r100)\n\tcollect: [ :v | '$' , (v printPaddedWith: $0 to: 4 base: 16) ]"
+			},
+			{
+				"__type" : "textSnippet",
+				"children" : {
+					"__type" : "snippets",
+					"items" : [ ]
+				},
+				"createEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"createTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-15T23:52:14.838723+02:00"
+					}
+				},
+				"editEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"editTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-15T23:52:14.838723+02:00"
+					}
+				},
+				"uid" : {
+					"__type" : "uid",
+					"uidString" : "LefTctr7T7ODejFuKYB0tg=="
+				},
+				"paragraphStyle" : {
+					"__type" : "textStyle"
+				},
+				"string" : "El experimento: abre la figura de arriba y, sin cerrarla, evalúa el snippet siguiente. Apaga el DMA de bitplanes durante cinco segundos — la pantalla del emulador se queda negra, porque Denise deja de recibir datos — y en la figura los ~80 slots azules se vuelven pálidos: durante esos cinco segundos son slots libres, y el 68000 (y el blitter) corren notablemente más rápido. Es la lección de la figura 6-12 del AHRM al revés: un display hires de 4 bitplanes necesita TODOS los slots durante el display y expulsa al 68000 del bus; apagar BPLEN se los devuelve todos. (El Workbench hires de 2 planos que estás viendo usa 2 de cada 4 slots de la ventana de fetch.)"
+			},
+			{
+				"__type" : "pharoSnippet",
+				"children" : {
+					"__type" : "snippets",
+					"items" : [ ]
+				},
+				"createEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"createTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-15T23:52:23.259649+02:00"
+					}
+				},
+				"editEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"editTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-15T23:52:23.259649+02:00"
+					}
+				},
+				"uid" : {
+					"__type" : "uid",
+					"uidString" : "pNk+AKxtQba8uEzK18Wm8Q=="
+				},
+				"code" : "| dmacon |\ndmacon := GT4AmigaMachine default catalog at: 'DMACON'.\ndmacon disable: 'BPLEN'.\n(Delay forSeconds: 5) wait.\ndmacon enable: 'BPLEN'.\ndmacon read"
+			},
+			{
+				"__type" : "textSnippet",
+				"children" : {
+					"__type" : "snippets",
+					"items" : [ ]
+				},
+				"createEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"createTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-15T23:52:35.855481+02:00"
+					}
+				},
+				"editEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"editTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-15T23:52:35.855481+02:00"
+					}
+				},
+				"uid" : {
+					"__type" : "uid",
+					"uidString" : "fIYHiZYsQIm0Jm6bk16cNA=="
+				},
+				"paragraphStyle" : {
+					"__type" : "textStyle"
+				},
+				"string" : "Dos lecciones para llevarse. Primera: las prioridades existen porque perder un ciclo tiene precios distintos — un ciclo de disco o audio perdido son datos corruptos o ruido, así que van fijos y primeros; el Copper necesita ir sincronizado con el haz; el blitter y el 68000 cobran lo que sobra (y el bit BLTPRI de DMACON, el \"blitter nasty\", decide si el blitter deja respirar al procesador). Segunda: cuando leas que el 68000 \"corre a mitad de velocidad con muchos bitplanes\", esta figura es el porqué — no hay magia, hay slots. De regalo, la advertencia clásica del AHRM: la instrucción TAS del 68000 no cabe en un slot de DMA (su ciclo read-modify-write es indivisible) y no debe usarse nunca en el Amiga."
+			}
+		]
+	},
+	"createEmail" : {
+		"__type" : "email",
+		"emailString" : "<unknown>"
+	},
+	"createTime" : {
+		"__type" : "time",
+		"time" : {
+			"__type" : "dateAndTime",
+			"dateAndTimeString" : "2026-07-15T23:51:09.797313+02:00"
+		}
+	},
+	"editEmail" : {
+		"__type" : "email",
+		"emailString" : "<unknown>"
+	},
+	"editTime" : {
+		"__type" : "time",
+		"time" : {
+			"__type" : "dateAndTime",
+			"dateAndTimeString" : "2026-07-15T23:51:09.797313+02:00"
+		}
+	},
+	"pageType" : {
+		"__type" : "namedPage",
+		"title" : "Los Time Slots de DMA — La Línea de Barrido en Vivo"
+	},
+	"uid" : {
+		"__type" : "uuid",
+		"uuid" : "24630ecd-09bc-417e-808a-f2f3a997bb99"
+	}
+}

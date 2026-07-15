@@ -373,6 +373,43 @@
 					"__type" : "textStyle"
 				},
 				"string" : "[[La Máquina — Un Diagrama de Bloques Vivo]]"
+			},
+			{
+				"__type" : "textSnippet",
+				"children" : {
+					"__type" : "snippets",
+					"items" : [ ]
+				},
+				"createEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"createTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-15T23:52:54.402742+02:00"
+					}
+				},
+				"editEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"editTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-15T23:52:54.402742+02:00"
+					}
+				},
+				"uid" : {
+					"__type" : "uid",
+					"uidString" : "K0grKoY3TW6ae7mhELEO4w=="
+				},
+				"paragraphStyle" : {
+					"__type" : "textStyle"
+				},
+				"string" : "[[Los Time Slots de DMA — La Línea de Barrido en Vivo]]"
 			}
 		]
 	},
