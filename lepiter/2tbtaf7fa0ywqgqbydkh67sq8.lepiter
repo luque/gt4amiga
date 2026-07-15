@@ -1,0 +1,360 @@
+{
+	"__schema" : "4.1",
+	"__type" : "page",
+	"children" : {
+		"__type" : "snippets",
+		"items" : [
+			{
+				"__type" : "textSnippet",
+				"children" : {
+					"__type" : "snippets",
+					"items" : [ ]
+				},
+				"createEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"createTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-16T00:32:36.482399+02:00"
+					}
+				},
+				"editEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"editTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-16T00:32:36.482399+02:00"
+					}
+				},
+				"uid" : {
+					"__type" : "uid",
+					"uidString" : "xeibxnfnSA2Xyc3qEXH9LA=="
+				},
+				"paragraphStyle" : {
+					"__type" : "textStyle"
+				},
+				"string" : "Si el Amiga tiene un efecto insignia, son las copper bars: barras de degradado metálico que cruzan la pantalla flotando por detrás de todo, sin costar ni un byte de framebuffer ni un ciclo de CPU por pixel. El truco es puro Copper: el fondo de la pantalla es COLOR00, y una lista que hace WAIT a cada línea y MOVE de un color distinto convierte el registro en un pincel vertical — el degradado \"metálico\" clásico es sencillamente un seno de la intensidad, máxima en el centro de la barra y cero en los bordes. En [[El Copper — Un Split de Color en Vivo]] partimos la pantalla en dos colores con una lista de 8 words; aquí generalizamos a tres barras (roja, dorada, azul) sobre negro: 106 pares WAIT+MOVE calculados en Pharo, escritos a chip RAM con UNA transferencia de bloque, y animados desde GToolkit. Y esta vez cerramos el círculo completo: al final restauramos el Workbench por software, sin Ctrl-Amiga-Amiga — la deuda que dejó anotada aquel capítulo."
+			},
+			{
+				"__type" : "pharoSnippet",
+				"children" : {
+					"__type" : "snippets",
+					"items" : [ ]
+				},
+				"createEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"createTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-16T00:32:57.173242+02:00"
+					}
+				},
+				"editEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"editTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-16T00:32:57.173242+02:00"
+					}
+				},
+				"uid" : {
+					"__type" : "uid",
+					"uidString" : "BP4NZOwdS4Gx/bqO4681/Q=="
+				},
+				"code" : "\"Paso 1: pintar un frame en Pharo y escribirlo VERIFICADO en chip RAM.\n 'construir' toma una fase de animación y devuelve la lista completa en\n bytes: tabla de colores por línea (tres barras senoidales compuestas\n en orden de pintor), y por cada línea un WAIT ((línea<<8)|1, máscara\n $FF00) + MOVE a COLOR00 ($0180). Se guarda en un global porque el\n snippet de animación lo reutiliza frame a frame.\"\n| monitor construir bytes clist readback |\nmonitor := GT4AmigaMonitorClient default.\nmonitor workbenchScreenPointer\n\tifNil: [ ^ 'el monitor no responde — ¿está corriendo en el Amiga?' ].\nconstruir := [ :fase | | barras tabla words listaBytes |\n\tbarras := {\n\t\t{ (150 + (55 * (fase * 0.35) sin)) rounded. 1.0. 0.15. 0.15 }.\n\t\t{ (150 + (55 * ((fase * 0.35) + 2.1) sin)) rounded. 1.0. 0.75. 0.1 }.\n\t\t{ (150 + (55 * ((fase * 0.35) + 4.2) sin)) rounded. 0.25. 0.45. 1.0 } }.\n\ttabla := Dictionary new.\n\t(45 to: 255 by: 2) do: [ :ln | tabla at: ln put: 0 ].\n\tbarras do: [ :barra |\n\t\t(45 to: 255 by: 2) do: [ :ln | | d t v |\n\t\t\td := (ln - barra first) abs.\n\t\t\td <= 15 ifTrue: [\n\t\t\t\tt := (15 - d) / 15.0.\n\t\t\t\tv := (15 * (t * Float pi / 2) sin) rounded.\n\t\t\t\ttabla at: ln put: (((barra second * v) rounded bitShift: 8)\n\t\t\t\t\tbitOr: (((barra third * v) rounded bitShift: 4)\n\t\t\t\t\tbitOr: (barra fourth * v) rounded)) ] ] ].\n\twords := OrderedCollection new.\n\twords add: 16r0180; add: 0.\n\t(45 to: 255 by: 2) do: [ :ln |\n\t\twords add: ((ln bitShift: 8) bitOr: 1); add: 16rFF00.\n\t\twords add: 16r0180; add: (tabla at: ln) ].\n\twords add: 16rFFFF; add: 16rFFFE.\n\tlistaBytes := ByteArray new: words size * 2.\n\twords doWithIndex: [ :w :i |\n\t\tlistaBytes at: 2 * i - 1 put: ((w bitShift: -8) bitAnd: 255).\n\t\tlistaBytes at: 2 * i put: (w bitAnd: 255) ].\n\tlistaBytes ].\nSmalltalk at: #GT4ABarsFrame put: construir.\nbytes := construir value: 0.\nclist := monitor callLibrary: 0 lvo: -198 a0: 0 a1: 0 d0: bytes size d1: 16r10002 d2: 0 d3: 0.\n(clist isNil or: [ clist = 0 ])\n\tifTrue: [ ^ 'AllocMem sin respuesta verificada — reevalúa este snippet' ].\nSmalltalk at: #GT4ABarsList put: clist.\nSmalltalk at: #GT4ABarsSize put: bytes size.\nmonitor writeMemoryAt: clist bytes: bytes.\nreadback := monitor readMemoryAt: clist length: bytes size.\nreadback = bytes\n\tifTrue: [ 'lista de ' , bytes size printString , ' bytes verificada en ' , clist printStringHex ]\n\tifFalse: [ 'VERIFICACIÓN FALLIDA — repite este snippet, NO instales' ]"
+			},
+			{
+				"__type" : "textSnippet",
+				"children" : {
+					"__type" : "snippets",
+					"items" : [ ]
+				},
+				"createEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"createTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-16T00:33:07.101929+02:00"
+					}
+				},
+				"editEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"editTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-16T00:33:07.101929+02:00"
+					}
+				},
+				"uid" : {
+					"__type" : "uid",
+					"uidString" : "78Kv5FeSSYOWivZarZNkxA=="
+				},
+				"paragraphStyle" : {
+					"__type" : "textStyle"
+				},
+				"string" : "La instalación es la misma disciplina que aprendimos con el split (allí está explicada al detalle): BPLEN fuera para que el fondo se vea limpio, COPEN fuera mientras se cambia el puntero — COP1LC son dos words y el blanking vertical no espera a nadie — y COPEN de vuelta. Tras el snippet, la pantalla del Amiga son tres rasterbars sobre negro."
+			},
+			{
+				"__type" : "pharoSnippet",
+				"children" : {
+					"__type" : "snippets",
+					"items" : [ ]
+				},
+				"createEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"createTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-16T00:33:18.551588+02:00"
+					}
+				},
+				"editEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"editTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-16T00:33:18.551588+02:00"
+					}
+				},
+				"uid" : {
+					"__type" : "uid",
+					"uidString" : "rSLLPLXtS/aBqC55bv/l2Q=="
+				},
+				"code" : "\"Paso 2: instalar. BPLEN off, COPEN off, COP1LCH/L, COPEN on.\"\n| monitor clist |\nmonitor := GT4AmigaMonitorClient default.\nclist := Smalltalk at: #GT4ABarsList.\n{ 16rDFF096 -> 16r0100.\n  16rDFF096 -> 16r0080.\n  16rDFF080 -> (clist bitShift: -16).\n  16rDFF082 -> (clist bitAnd: 16rFFFF).\n  16rDFF096 -> 16r8080 }\n\tdo: [ :par |\n\t\t(monitor writeMemoryAt: par key size: 2 value: par value)\n\t\t\tifFalse: [ ^ 'ack perdido escribiendo ' , par key printStringHex , ' — reevalúa este snippet' ] ].\n'rasterbars en pantalla — mira el Amiga'"
+			},
+			{
+				"__type" : "textSnippet",
+				"children" : {
+					"__type" : "snippets",
+					"items" : [ ]
+				},
+				"createEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"createTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-16T00:33:33.181234+02:00"
+					}
+				},
+				"editEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"editTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-16T00:33:33.181234+02:00"
+					}
+				},
+				"uid" : {
+					"__type" : "uid",
+					"uidString" : "Nh96IU7CRB6/8xriqG7okg=="
+				},
+				"paragraphStyle" : {
+					"__type" : "textStyle"
+				},
+				"string" : "Ahora, que se muevan. Cada frame de la animación es una lista nueva (las tres barras cambian de centro siguiendo senos desfasados, y se cruzan — el orden de pintor decide quién pasa por delante), así que reescribimos los 856 bytes en cada paso. Aquí aparece el techo, y es instructivo ponerle números: a los ~5 KB/s del puente serie, un frame cuesta ~0,8 segundos — nuestra animación va a ~1,3 fps. Una demo real hace esto a 50 fps: el 68000 reescribe la lista durante el blanking vertical, a velocidad de bus, sin que ningún byte salga de la máquina. Esa versión nativa — un programa 68k lanzado con el opcode X — es un capítulo pendiente; la gracia de ESTA versión es que el efecto se calcula en Pharo y puedes cambiar la fórmula del degradado y reevaluar. El fork es obligatorio (nada de esperas en el hilo de UI, como aprendimos en [[Los Time Slots de DMA — La Línea de Barrido en Vivo]]); para pararla antes de tiempo: Smalltalk at: #GT4ABarsAnim put: false."
+			},
+			{
+				"__type" : "pharoSnippet",
+				"children" : {
+					"__type" : "snippets",
+					"items" : [ ]
+				},
+				"createEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"createTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-16T00:33:42.027296+02:00"
+					}
+				},
+				"editEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"editTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-16T00:33:42.027296+02:00"
+					}
+				},
+				"uid" : {
+					"__type" : "uid",
+					"uidString" : "8OLsvAqiQt2r+GvkNFU+rA=="
+				},
+				"code" : "\"La animación: 60 frames (~50 segundos al ritmo del puente serie).\"\nSmalltalk at: #GT4ABarsAnim put: true.\nSmalltalk at: #GT4ABarsAnimRunning put: true.\n[ [ | monitor construir clist fase |\n\tmonitor := GT4AmigaMonitorClient default.\n\tconstruir := Smalltalk at: #GT4ABarsFrame.\n\tclist := Smalltalk at: #GT4ABarsList.\n\tfase := 0.\n\t[ (Smalltalk at: #GT4ABarsAnim) and: [ fase < 60 ] ] whileTrue: [\n\t\tfase := fase + 1.\n\t\tmonitor writeMemoryAt: clist bytes: (construir value: fase) ] ]\n\tensure: [ Smalltalk at: #GT4ABarsAnimRunning put: false ] ] fork.\n'animando — mira la pantalla del Amiga'"
+			},
+			{
+				"__type" : "textSnippet",
+				"children" : {
+					"__type" : "snippets",
+					"items" : [ ]
+				},
+				"createEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"createTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-16T00:33:54.923087+02:00"
+					}
+				},
+				"editEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"editTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-16T00:33:54.923087+02:00"
+					}
+				},
+				"uid" : {
+					"__type" : "uid",
+					"uidString" : "zrtu13bBSfat9IJKliRLEw=="
+				},
+				"paragraphStyle" : {
+					"__type" : "textStyle"
+				},
+				"string" : "Y la deuda, saldada. El capítulo del split terminaba con \"para recuperar el Workbench, reinicia\" porque no sabíamos recargar COP1LC con la lista del sistema. Ahora sí: la lista del Workbench sigue intacta en chip RAM — nunca la tocamos, solo dejamos de ejecutarla — y GfxBase la apunta en LOFlist (offset 50, graphics/gfxbase.i), el mismo campo del que el catálogo de registros deriva BPLCON0 o DDFSTRT. La secuencia importa: parar la animación y esperar a que confirme (un frame en vuelo no debe escribir sobre memoria que vamos a liberar), COPEN fuera, COP1LC de vuelta a la lista del sistema, DMACON $8180 (SET + BPLEN + COPEN) para reencender lo que apagamos... y solo ENTONCES liberar nuestra chip RAM. La regla del split sigue en pie: jamás liberes una copper list que el hardware pueda estar ejecutando."
+			},
+			{
+				"__type" : "pharoSnippet",
+				"children" : {
+					"__type" : "snippets",
+					"items" : [ ]
+				},
+				"createEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"createTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-16T00:34:07.823479+02:00"
+					}
+				},
+				"editEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"editTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-16T00:34:07.823479+02:00"
+					}
+				},
+				"uid" : {
+					"__type" : "uid",
+					"uidString" : "PRoghu6WSIWeuwORh+HX7w=="
+				},
+				"code" : "\"Paso 3: restaurar el Workbench por software y liberar la lista.\"\n| monitor catalogo lof clist |\nmonitor := GT4AmigaMonitorClient default.\ncatalogo := GT4AmigaMachine default catalog.\nSmalltalk at: #GT4ABarsAnim put: false.\n[ Smalltalk at: #GT4ABarsAnimRunning ifAbsent: [ false ] ]\n\twhileTrue: [ (Delay forMilliseconds: 100) wait ].\nclist := Smalltalk at: #GT4ABarsList ifAbsent: [ ^ 'no hay lista instalada' ].\nlof := monitor readMemoryAt: catalogo gfxBase + 50 size: 4.\n(lof isNil or: [ lof = 0 ]) ifTrue: [ ^ 'LOFlist ilegible — no toco nada' ].\n{ 16rDFF096 -> 16r0080.\n  16rDFF080 -> (lof bitShift: -16).\n  16rDFF082 -> (lof bitAnd: 16rFFFF).\n  16rDFF096 -> 16r8180 }\n\tdo: [ :par | monitor writeMemoryAt: par key size: 2 value: par value ].\n(Delay forMilliseconds: 200) wait.\nmonitor callLibrary: 0 lvo: -210 a0: 0 a1: clist\n\td0: (Smalltalk at: #GT4ABarsSize) d1: 0 d2: 0 d3: 0.\nSmalltalk globals removeKey: #GT4ABarsList.\nSmalltalk globals removeKey: #GT4ABarsSize.\n'Workbench de vuelta, chip RAM liberada'"
+			},
+			{
+				"__type" : "textSnippet",
+				"children" : {
+					"__type" : "snippets",
+					"items" : [ ]
+				},
+				"createEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"createTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-16T00:34:18.992113+02:00"
+					}
+				},
+				"editEmail" : {
+					"__type" : "email",
+					"emailString" : "<unknown>"
+				},
+				"editTime" : {
+					"__type" : "time",
+					"time" : {
+						"__type" : "dateAndTime",
+						"dateAndTimeString" : "2026-07-16T00:34:18.992113+02:00"
+					}
+				},
+				"uid" : {
+					"__type" : "uid",
+					"uidString" : "NbpG8f/YSXS43YX8LqYRFw=="
+				},
+				"paragraphStyle" : {
+					"__type" : "textStyle"
+				},
+				"string" : "Un cierre para conectar capítulos: mientras las barras estaban en pantalla, ¿qué hacía el Copper en términos de la línea de barrido? Exactamente lo que cuenta la nota al pie de la figura 6-9 del AHRM: cada MOVE le cuesta 4 time slots y cada WAIT 6, todos robados de los slots libres — con BPLEN apagado, tenía la línea casi entera para él. Nuestra lista ejecuta un WAIT+MOVE cada dos líneas: unos 10 slots de ~113 por línea afectada. Las rasterbars son, en el fondo, el efecto más barato del mundo: ni bitplanes, ni blitter, ni CPU — solo un co-procesador de tres instrucciones cabalgando el haz de vídeo."
+			}
+		]
+	},
+	"createEmail" : {
+		"__type" : "email",
+		"emailString" : "<unknown>"
+	},
+	"createTime" : {
+		"__type" : "time",
+		"time" : {
+			"__type" : "dateAndTime",
+			"dateAndTimeString" : "2026-07-16T00:32:22.153048+02:00"
+		}
+	},
+	"editEmail" : {
+		"__type" : "email",
+		"emailString" : "<unknown>"
+	},
+	"editTime" : {
+		"__type" : "time",
+		"time" : {
+			"__type" : "dateAndTime",
+			"dateAndTimeString" : "2026-07-16T00:32:22.153048+02:00"
+		}
+	},
+	"pageType" : {
+		"__type" : "namedPage",
+		"title" : "Copper Bars — Rasterbars de la Demoscene"
+	},
+	"uid" : {
+		"__type" : "uuid",
+		"uuid" : "30b7e8ca-27f6-4371-ae19-0f21790d8b2f"
+	}
+}

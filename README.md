@@ -245,6 +245,11 @@ The book pages will appear in the Lepiter browser.
 | **El Bridge Server — Controlar el Amiga en Vivo** | Live peek/poke and generic library calls over the serial bridge: reading `ExecBase`, changing the Workbench background color via `SetRGB4`, and a GToolkit slider driving the color in real time |
 | **El Copper — Un Split de Color en Vivo** | Building a minimal Copper list word-by-word in live chip RAM (MOVE/WAIT encoding from the Hardware Reference Manual), installing it safely, and moving the color-split line in real time from a GToolkit slider |
 | **Lectura en Bloque — La Pantalla de Workbench dentro del Libro** | The block-transfer opcodes at work: navigating `Screen`→`BitMap` structures, reading the real palette via `GetRGB4`, block-reading both bitplanes and composing the live Workbench screen as an image inside the notebook, and a snapshot→paint→restore round-trip on visible bitplane memory |
+| **El Chipset del Amiga — Registros como Objetos Vivos** | The chip register catalog as a live model: AHRM access semantics (`#read`/`#write`/`#setClear`/`#strobe`), decoded bit fields, and each register's chain of knowability — readable, read-counterpart, derived from the OS, or shadow |
+| **El Panel de Control — DMACON e INTENA con Interruptores** | The machine's control panel in Bloc: every writable bit a clickable switch, with the queue+worker threading contract and the link-critical INTENA bits locked |
+| **La Máquina — Un Diagrama de Bloques Vivo** | The whole A500 as one model: clickable block diagram with DMA arrows lit from the live DMACON, physical and functional decompositions, memory map with windowed hexdumps, and live memory gauges via `AvailMem` |
+| **Los Time Slots de DMA — La Línea de Barrido en Vivo** | The AHRM's centerpiece figure alive: 227 color clocks per scan line, who owns each slot, and the bitplane fetch window drawn from the machine's real BPLCON0/DDFSTRT/DDFSTOP — read out of Workbench's own copper list |
+| **Copper Bars — Rasterbars de la Demoscene** | The Amiga's signature demoscene effect: three sine-shaded rasterbars built in Pharo (pure `COLOR00` + WAIT/MOVE), block-written to chip RAM, animated over the bridge, and the Workbench restored by software via `GfxBase->LOFlist` |
 
 ## Quick start (Playground)
 
@@ -313,7 +318,7 @@ Infrastructure first:
 
 Then one concept at a time, each = model + views + book chapter:
 
-- [ ] **Copper**: `CopperList` model (assemble/disassemble MOVE/WAIT/SKIP ↔ words), raster-timeline view (WAITs placed on a frame strip, draggable), and disassembly of Workbench's own list from `GfxBase->LOFlist` — which also finally gives the software restore after a Copper takeover (`LOFlist` → `COP1LC`) instead of rebooting.
+- [ ] **Copper**: `CopperList` model (assemble/disassemble MOVE/WAIT/SKIP ↔ words), raster-timeline view (WAITs placed on a frame strip, draggable), and disassembly of Workbench's own list from `GfxBase->LOFlist`. (Two pieces already landed ahead of the model: the catalog reads the live list for its write-only register derivations, and the software restore after a Copper takeover — `LOFlist` → `COP1LC`, then `FreeMem` — is built and demonstrated in the book page "Copper Bars — Rasterbars de la Demoscene", which also delivers the classic sine-shaded rasterbars effect end-to-end from the notebook, **verified on screen 2026-07-16**.)
 - [ ] **Playfield / bitplanes**: framebuffer viewer — read BPLxPT planes + palette over block transfer, compose in Pharo, render "what the Amiga sees" inside the notebook; modulo and BPLCON1 scroll interactives, dual-playfield priorities.
 - [ ] **Sprites**: pixel editor in GT (16×N, 2bpp) writing sprite data to chip RAM live — draw in the notebook, watch it float over Workbench; drag positioning, decoded VSTART/HSTART/attach.
 - [ ] **Blitter**: minterm truth-table builder (pick A/B/C combinations → LF byte), before/after memory-as-bitmap views around a live blit, `OwnBlitter`/`DisownBlitter` discipline as the sharing lesson.
