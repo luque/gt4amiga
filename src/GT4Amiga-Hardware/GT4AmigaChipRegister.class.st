@@ -36,6 +36,97 @@ Class {
 	#category : #'GT4Amiga-Hardware'
 }
 
+{ #category : #'write safety' }
+GT4AmigaChipRegister class >> readOnlyIndicatorFieldsFor: aRegisterName [
+	"Fields the hardware SETS and you only watch - writing them is
+	 meaningless (the chip owns them). BBUSY/BZERO are the blitter's
+	 status flags carried in DMACON's word."
+	^ (aRegisterName = 'DMACON' or: [ aRegisterName = 'DMACONR' ])
+		ifTrue: [ #('BBUSY' 'BZERO') ]
+		ifFalse: [ #() ]
+]
+
+{ #category : #'write safety' }
+GT4AmigaChipRegister class >> linkCriticalFieldsFor: aRegisterName [
+	"Bits whose write would cut the monitor's own link. INTEN is the
+	 master interrupt enable; RBF/TBE are the serial receive/transmit
+	 interrupts the SER: monitor lives on; PORTS is CIA-A. UARTBRK forces
+	 the serial line to a break condition - it silences the wire."
+	aRegisterName = 'INTENA' ifTrue: [ ^ #('INTEN' 'RBF' 'TBE' 'PORTS') ].
+	aRegisterName = 'ADKCON' ifTrue: [ ^ #('UARTBRK') ].
+	^ #()
+]
+
+{ #category : #'write safety' }
+GT4AmigaChipRegister class >> systemCriticalFieldsFor: aRegisterName [
+	"Bits whose write would destabilize a running Workbench into a CPU
+	 exception ('Software error - task held'), without necessarily
+	 touching the monitor link. VERTB drives Intuition/Exec vertical-blank
+	 housekeeping; EXTER is CIA-B (timer.device)."
+	aRegisterName = 'INTENA' ifTrue: [ ^ #('VERTB' 'EXTER') ].
+	^ #()
+]
+
+{ #category : #'write safety' }
+GT4AmigaChipRegister class >> fullyLockedRegisters [
+	"Registers where EVERY writable bit is unsafe under a running OS.
+	 Writing INTREQ injects a live hardware interrupt straight into the
+	 system - even a 'harmless-looking' bit can fire a handler that isn't
+	 ready and hold a task."
+	^ #('INTREQ')
+]
+
+{ #category : #'write safety' }
+GT4AmigaChipRegister >> writeSafetyOf: aField [
+	"Domain verdict on whether aField may be safely written from the
+	 interactive figures, one of:
+	  #protocol       the SETCLR command bit - carries no state
+	  #readOnly       a read-mode/strobe register, or a hardware-set indicator
+	  #linkCritical   writing it cuts the monitor's own link (locked)
+	  #systemCritical writing it crashes/hangs the OS (locked)
+	  #transient      writable, but the Workbench copper rewrites it every
+	                  frame, so the write does not persist (COLORxx, BPLCONx,
+	                  DDF/DIW, modulos - all derived from the live copper list)
+	  #writable       safe to toggle and it latches (DMACON channels, the
+	                  non-critical INTENA/ADKCON bits)"
+	aField name = 'SETCLR' ifTrue: [ ^ #protocol ].
+	(mode == #read or: [ mode == #strobe ]) ifTrue: [ ^ #readOnly ].
+	((self class readOnlyIndicatorFieldsFor: name) includes: aField name)
+		ifTrue: [ ^ #readOnly ].
+	(self class fullyLockedRegisters includes: name) ifTrue: [ ^ #systemCritical ].
+	((self class linkCriticalFieldsFor: name) includes: aField name)
+		ifTrue: [ ^ #linkCritical ].
+	((self class systemCriticalFieldsFor: name) includes: aField name)
+		ifTrue: [ ^ #systemCritical ].
+	(mode == #write and: [ derivation notNil ]) ifTrue: [ ^ #transient ].
+	^ #writable
+]
+
+{ #category : #'write safety' }
+GT4AmigaChipRegister >> isFieldWritable: aField [
+	"Only a field the domain deems safe AND latching may be toggled from
+	 the interactive figures. Transient (copper-owned) and locked bits are
+	 rendered but never clickable."
+	^ (self writeSafetyOf: aField) == #writable
+]
+
+{ #category : #'writing' }
+GT4AmigaChipRegister >> toggleField: aField [
+	"Flip aField's bit the way my mode demands: SET/CLR through the
+	 protocol for #setClear registers, read-modify-write of the whole word
+	 for a raw #write register. Serial I/O - never call on the UI thread."
+	| current on |
+	current := self value ifNil: [ 0 ].
+	on := (aField valueIn: current) = 1.
+	mode == #setClear ifTrue: [
+		^ on
+			ifTrue: [ self disable: aField name ]
+			ifFalse: [ self enable: aField name ] ].
+	^ self write: (on
+		ifTrue: [ current bitAnd: (aField mask bitXor: 16rFFFF) ]
+		ifFalse: [ current bitOr: aField mask ])
+]
+
 { #category : #'accessing' }
 GT4AmigaChipRegister >> catalog [
 	^ catalog

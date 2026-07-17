@@ -1,11 +1,16 @@
 "
-The AHRM-style bit diagram of ONE chip register, as a live, READ-ONLY figure: sixteen bit cells (15 down to 0) grouped by named field, the field mnemonic under its cells and, for multi-bit fields, the decoded value. This is the graphical face every register gets in the inspector - the same visual language as the DMACON/INTENA control panel, extended to multi-bit fields (BPU, VSTART, R/G/B...) and to field-less registers, which simply show their raw 16 bits. COLORxx registers also get a live swatch of the decoded RGB in the header.
+The AHRM-style bit diagram of ONE chip register, as a live figure that both REFLECTS and (where the domain says it is safe) WRITES: sixteen bit cells (15 down to 0) grouped by named field, the field mnemonic under its cells and, for multi-bit fields, the decoded value. Field-less registers show their raw 16 bits; COLORxx get a live RGB swatch in the header.
 
-I am deliberately VIEW-ONLY. Toggling bits belongs to the Control Panel (GT4AmigaControlPanelElement), which exposes a vetted, contained set of registers (DMACON and INTENA) with the link- and OS-critical bits locked. A diagram sits on EVERY register - including INTREQ (where a write injects a live hardware interrupt) and ADKCON (UARTBRK breaks the very serial line the monitor speaks over) - so making its cells clickable would let casual play poke the interrupt/DMA machinery underneath a running Workbench and push a task into a CPU exception ('Software error - task held'). I only reflect; I never write.
+Writing is gated by the model's write-safety policy (GT4AmigaChipRegister>>writeSafetyOf:), so the same figure can sit on EVERY register without letting casual play brick the machine. Each cell's kind, from that policy:
+  #writable       a latching bit safe to toggle (DMACON channels, the non-critical INTENA/ADKCON bits) - CLICKABLE; a click enqueues the write on my worker
+  #transient      writable in theory, but the Workbench copper rewrites this register every frame so the write would not persist (COLORxx, BPLCONx, DDF/DIW, modulos) - shown with an amber border, not clickable
+  #linkCritical   a write would cut the monitor's own link (INTEN/RBF/TBE/PORTS, ADKCON UARTBRK) - red border, locked
+  #systemCritical a write would hold a task ('Software error - task held'): the whole INTREQ register (a write injects a live interrupt), INTENA VERTB/EXTER - red border, locked
+  #readOnly       a read-mode register or a hardware-set indicator (BBUSY/BZERO) - LED style, not clickable
+  #protocol       the SETCLR command bit - pale, carries no state
+  #unused         a bit outside every field - pale, still showing its value
 
-Each cell carries a kind for STYLING only: #led (a read-only indicator like BBUSY/BZERO, orange when on), #protocol (the SETCLR bit - on reads it carries no state, rendered pale), #unused (a bit outside every field, pale but still showing its value), and #plain (everything else). None of them is interactive.
-
-Threading contract (project rule: no serial I/O on the UI thread): I render only the register cache. One background worker - started when I enter the scene graph, stopped when I leave it - polls the register every 2 seconds and announces GT4AmigaRegistersRefreshed on the catalog announcer; the announcement handler hops back to the UI thread to repaint, so other listeners (the control panel, the DMA timeline) stay in sync. A generation stamp retires a loop left over from a quick detach/re-attach (inspector tabs, exporters) without terminating it mid-protocol.
+Threading contract (project rule: no serial I/O on the UI thread): clicks only enqueue a toggle; ONE background worker drains the queue (performs the write, reads the register back, announces GT4AmigaRegistersRefreshed on the catalog announcer), and polls the register every 2 seconds while idle so the figure also reflects changes made from anywhere else. The announcement handler repaints from the CACHE on the UI thread. The worker starts when I enter the scene graph and stops when I leave it; a generation stamp retires a loop left over from a quick detach/re-attach (inspector tabs, exporters) without terminating it mid-frame-exchange (terminating a worker inside sendFrame leaves the client's I/O mutex owned by a dead process - let the loop retire itself instead).
 
 Open me with: GT4AmigaRegisterDiagramElement onRegister: (GT4AmigaChipRegisters default at: 'DMACON') - or just inspect any register and pick the Diagram view.
 "
@@ -14,6 +19,8 @@ Class {
 	#superclass : #BlElement,
 	#instVars : [
 		'register',
+		'queue',
+		'mutex',
 		'running',
 		'generation',
 		'valueLabel',
@@ -32,6 +39,8 @@ GT4AmigaRegisterDiagramElement class >> onRegister: aRegister [
 { #category : #'instance creation' }
 GT4AmigaRegisterDiagramElement >> setRegister: aRegister [
 	register := aRegister.
+	queue := OrderedCollection new.
+	mutex := Mutex new.
 	running := false.
 	generation := 0.
 	cells := OrderedCollection new.
@@ -142,7 +151,7 @@ GT4AmigaRegisterDiagramElement >> buildGroupFor: aGroupArray [
 	field := aGroupArray first.
 	msb := aGroupArray second.
 	lsb := aGroupArray third.
-	kind := field ifNil: [ #unused ] ifNotNil: [ self kindFor: field ].
+	kind := field ifNil: [ #unused ] ifNotNil: [ register writeSafetyOf: field ].
 	group := BlElement new
 		layout: BlLinearLayout vertical alignCenter;
 		constraintsDo: [ :c |
@@ -161,7 +170,7 @@ GT4AmigaRegisterDiagramElement >> buildGroupFor: aGroupArray [
 	group addChild: bitsRow.
 	field ifNotNil: [
 		group addChild: (BlTextElement new
-			text: (GT4AmigaControlPanelElement text: field name size: 9 color: Color darkGray);
+			text: (GT4AmigaControlPanelElement text: field name size: 9 color: (self labelColorFor: kind));
 			margin: (BlInsets top: 2);
 			yourself).
 		field isFlag ifFalse: [
@@ -190,12 +199,16 @@ GT4AmigaRegisterDiagramElement >> buildCellFor: aBit field: aFieldOrNil kind: aK
 		size: 22 @ 20;
 		layout: BlLinearLayout horizontal alignCenter;
 		margin: (BlInsets top: 1);
-		border: (BlBorder paint: (self borderColorFor: aKind) width: 1);
+		border: (BlBorder paint: (self borderColorFor: aKind) width: (self borderWidthFor: aKind));
 		yourself.
 	text := BlTextElement new
 		text: (GT4AmigaControlPanelElement text: '?' size: 11 color: Color gray);
 		yourself.
 	box addChild: text.
+	(aKind = #writable and: [ aFieldOrNil notNil ]) ifTrue: [
+		box addEventHandlerOn: BlClickEvent do: [ :evt |
+			evt consumed: true.
+			self toggleField: aFieldOrNil ] ].
 	box addAptitude: (BrGlamorousWithLabelTooltipAptitude
 		text: (self tooltipForBit: aBit field: aFieldOrNil kind: aKind)).
 	cells add: { aBit. box. text. aFieldOrNil. aKind }.
@@ -204,20 +217,23 @@ GT4AmigaRegisterDiagramElement >> buildCellFor: aBit field: aFieldOrNil kind: aK
 ]
 
 { #category : #'building' }
-GT4AmigaRegisterDiagramElement >> kindFor: aField [
-	"Classify a field for STYLING only - I am view-only, nothing here is
-	 clickable. #led marks the read-only indicators the control panel also
-	 shows as LEDs; #protocol marks the SETCLR command bit (no state)."
-	register mode == #setClear ifFalse: [ ^ #plain ].
-	aField name = 'SETCLR' ifTrue: [ ^ #protocol ].
-	((GT4AmigaRegisterPanelElement readOnlyFieldsFor: register name) includes: aField name)
-		ifTrue: [ ^ #led ].
-	^ #plain
+GT4AmigaRegisterDiagramElement >> borderColorFor: aKind [
+	(aKind = #linkCritical or: [ aKind = #systemCritical ]) ifTrue: [ ^ Color red ].
+	aKind = #transient ifTrue: [ ^ Color orange muchDarker ].
+	(aKind = #unused or: [ aKind = #protocol ]) ifTrue: [ ^ Color gray alpha: 0.4 ].
+	^ Color darkGray
 ]
 
 { #category : #'building' }
-GT4AmigaRegisterDiagramElement >> borderColorFor: aKind [
-	(aKind = #unused or: [ aKind = #protocol ]) ifTrue: [ ^ Color gray alpha: 0.4 ].
+GT4AmigaRegisterDiagramElement >> borderWidthFor: aKind [
+	^ (aKind = #linkCritical or: [ aKind = #systemCritical ])
+		ifTrue: [ 2 ]
+		ifFalse: [ 1 ]
+]
+
+{ #category : #'building' }
+GT4AmigaRegisterDiagramElement >> labelColorFor: aKind [
+	(aKind = #linkCritical or: [ aKind = #systemCritical ]) ifTrue: [ ^ Color red muchDarker ].
 	^ Color darkGray
 ]
 
@@ -225,12 +241,29 @@ GT4AmigaRegisterDiagramElement >> borderColorFor: aKind [
 GT4AmigaRegisterDiagramElement >> tooltipForBit: aBit field: aFieldOrNil kind: aKind [
 	| suffix |
 	aFieldOrNil ifNil: [ ^ 'bit ' , aBit printString , ' (sin uso)' ].
-	suffix := aKind = #led
-		ifTrue: [ ' [indicador de solo lectura]' ]
-		ifFalse: [ aKind = #protocol
-			ifTrue: [ ' [bit de protocolo, no estado]' ]
-			ifFalse: [ '' ] ].
+	suffix := aKind caseOf: {
+		[ #writable ] -> [ ' [clic para conmutar]' ].
+		[ #transient ] -> [ ' [el copper del Workbench lo reescribe cada frame: la escritura no persiste]' ].
+		[ #linkCritical ] -> [ ' [BLOQUEADO: escribirlo cortaria el enlace del monitor]' ].
+		[ #systemCritical ] -> [ ' [BLOQUEADO: escribirlo dejaria una tarea en "task held"]' ].
+		[ #readOnly ] -> [ ' [indicador de solo lectura]' ].
+		[ #protocol ] -> [ ' [bit de protocolo, no estado]' ] }
+		otherwise: [ '' ].
 	^ aFieldOrNil name , ' (bit ' , aFieldOrNil bitsString , '): ' , aFieldOrNil description , suffix
+]
+
+{ #category : #'actions' }
+GT4AmigaRegisterDiagramElement >> toggleField: aField [
+	"Clicks never touch the machine directly: hand the toggle to the
+	 worker queue and return. Only #writable fields ever reach here."
+	| reg |
+	reg := register.
+	self enqueue: [ reg toggleField: aField ]
+]
+
+{ #category : #'worker' }
+GT4AmigaRegisterDiagramElement >> enqueue: aBlock [
+	mutex critical: [ queue addLast: aBlock ]
 ]
 
 { #category : #'worker' }
@@ -258,11 +291,28 @@ GT4AmigaRegisterDiagramElement >> stopWorker [
 
 { #category : #'worker' }
 GT4AmigaRegisterDiagramElement >> workerLoopGeneration: myGeneration [
-	"Poll the register every 2 seconds and announce. A dead link must not
-	 kill the loop (read keeps the previous cache)."
+	"Drain enqueued toggles, and poll the register every 2 seconds. A dead
+	 link must not kill the loop (read keeps the previous cache)."
+	| idleMs |
+	idleMs := 0.
+	self pollRegister.
 	[ running and: [ generation = myGeneration ] ] whileTrue: [
-		self pollRegister.
-		(Delay forMilliseconds: 2000) wait ]
+		| action |
+		action := mutex critical: [
+			queue isEmpty
+				ifTrue: [ nil ]
+				ifFalse: [ queue removeFirst ] ].
+		action
+			ifNotNil: [
+				[ action value ] on: Error do: [ :e | ].
+				self pollRegister.
+				idleMs := 0 ]
+			ifNil: [
+				(Delay forMilliseconds: 200) wait.
+				idleMs := idleMs + 200.
+				idleMs >= 2000 ifTrue: [
+					self pollRegister.
+					idleMs := 0 ] ] ]
 ]
 
 { #category : #'worker' }
@@ -319,7 +369,7 @@ GT4AmigaRegisterDiagramElement >> updateCell: anEntry value: aValueOrNil [
 		ifTrue: [
 			background := pale
 				ifTrue: [ Color gray ]
-				ifFalse: [ kind = #led
+				ifFalse: [ kind = #readOnly
 					ifTrue: [ Color orange ]
 					ifFalse: [ Color green muchDarker ] ].
 			textColor := Color white ]

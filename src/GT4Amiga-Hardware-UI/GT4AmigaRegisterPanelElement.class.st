@@ -19,16 +19,18 @@ Class {
 
 { #category : #'configuration' }
 GT4AmigaRegisterPanelElement class >> readOnlyFieldsFor: aRegisterName [
-	^ aRegisterName = 'DMACON'
-		ifTrue: [ #('BBUSY' 'BZERO') ]
-		ifFalse: [ #() ]
+	"Kept as a thin delegate to the model's single source of truth
+	 (GT4AmigaChipRegister write-safety policy)."
+	^ GT4AmigaChipRegister readOnlyIndicatorFieldsFor: aRegisterName
 ]
 
 { #category : #'configuration' }
 GT4AmigaRegisterPanelElement class >> lockedFieldsFor: aRegisterName [
-	^ aRegisterName = 'INTENA'
-		ifTrue: [ #('INTEN' 'RBF' 'TBE' 'PORTS') ]
-		ifFalse: [ #() ]
+	"The link- and system-critical bits, from the model's write-safety
+	 policy - so the panel now also locks INTENA's VERTB/EXTER (a live
+	 toggle of either can hold a task), not just the four link bits."
+	^ (GT4AmigaChipRegister linkCriticalFieldsFor: aRegisterName)
+		, (GT4AmigaChipRegister systemCriticalFieldsFor: aRegisterName)
 ]
 
 { #category : #'accessing' }
