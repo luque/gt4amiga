@@ -21,6 +21,7 @@ Class {
 		'ddfstrt',
 		'ddfstop',
 		'running',
+		'generation',
 		'cells',
 		'owners',
 		'summaryLabel',
@@ -42,6 +43,7 @@ GT4AmigaDMATimelineElement >> setMachine: aMachine [
 	ddfstrt := machine catalog at: 'DDFSTRT'.
 	ddfstop := machine catalog at: 'DDFSTOP'.
 	running := false.
+	generation := 0.
 	self size: 724 @ 214.
 	self buildTimeline.
 	self updateFromCache.
@@ -294,11 +296,17 @@ GT4AmigaDMATimelineElement >> isRunning [
 
 { #category : #'worker' }
 GT4AmigaDMATimelineElement >> startWorker [
+	"The generation stamp retires a previous loop that survived a quick
+	 detach/re-attach (inspector tabs, exporters) while blocked in serial
+	 I/O - re-arming the shared running flag must not leave two loops."
+	| myGeneration |
 	running ifTrue: [ ^ self ].
 	running := true.
+	generation := generation + 1.
+	myGeneration := generation.
 	machine catalog announcer unsubscribe: self.
 	machine catalog announcer when: GT4AmigaRegistersRefreshed send: #onRefreshed to: self.
-	[ self workerLoop ]
+	[ self workerLoopGeneration: myGeneration ]
 		forkAt: Processor userBackgroundPriority
 		named: 'GT4Amiga DMA timeline worker'
 ]
@@ -310,11 +318,11 @@ GT4AmigaDMATimelineElement >> stopWorker [
 ]
 
 { #category : #'worker' }
-GT4AmigaDMATimelineElement >> workerLoop [
+GT4AmigaDMATimelineElement >> workerLoopGeneration: myGeneration [
 	"Poll the four driving registers every 2 seconds and announce; the
 	 three copper-derived reads share one cached copper-list snapshot.
 	 A dead link must not kill the loop (read keeps the previous cache)."
-	[ running ] whileTrue: [
+	[ running and: [ generation = myGeneration ] ] whileTrue: [
 		[ dmacon read. bplcon0 read. ddfstrt read. ddfstop read.
 		machine catalog announcer announce: GT4AmigaRegistersRefreshed new ]
 			on: Error do: [ :e | ].

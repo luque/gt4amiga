@@ -37,6 +37,11 @@ Class {
 }
 
 { #category : #'accessing' }
+GT4AmigaChipRegister >> catalog [
+	^ catalog
+]
+
+{ #category : #'accessing' }
 GT4AmigaChipRegister >> catalog: aCatalog [
 	catalog := aCatalog
 ]

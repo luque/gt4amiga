@@ -18,6 +18,7 @@ Class {
 		'queue',
 		'mutex',
 		'running',
+		'generation',
 		'panels'
 	],
 	#category : #'GT4Amiga-Hardware-UI'
@@ -42,6 +43,7 @@ GT4AmigaControlPanelElement >> setCatalog: aCatalog [
 	queue := OrderedCollection new.
 	mutex := Mutex new.
 	running := false.
+	generation := 0.
 	self layout: BlLinearLayout vertical.
 	self constraintsDo: [ :c |
 		c horizontal matchParent.
@@ -69,11 +71,17 @@ GT4AmigaControlPanelElement >> enqueue: aBlock [
 
 { #category : #'worker' }
 GT4AmigaControlPanelElement >> startWorker [
+	"The generation stamp retires a previous loop that survived a quick
+	 detach/re-attach (inspector tabs, exporters) while blocked in serial
+	 I/O - re-arming the shared running flag must not leave two loops."
+	| myGeneration |
 	running ifTrue: [ ^ self ].
 	running := true.
+	generation := generation + 1.
+	myGeneration := generation.
 	catalog announcer unsubscribe: self.
 	catalog announcer when: GT4AmigaRegistersRefreshed send: #onRefreshed to: self.
-	[ self workerLoop ]
+	[ self workerLoopGeneration: myGeneration ]
 		forkAt: Processor userBackgroundPriority
 		named: 'GT4Amiga control panel worker'
 ]
@@ -85,11 +93,11 @@ GT4AmigaControlPanelElement >> stopWorker [
 ]
 
 { #category : #'worker' }
-GT4AmigaControlPanelElement >> workerLoop [
+GT4AmigaControlPanelElement >> workerLoopGeneration: myGeneration [
 	| idleMs |
 	idleMs := 0.
 	self pollRegisters.
-	[ running ] whileTrue: [
+	[ running and: [ generation = myGeneration ] ] whileTrue: [
 		| action |
 		action := mutex critical: [
 			queue isEmpty
