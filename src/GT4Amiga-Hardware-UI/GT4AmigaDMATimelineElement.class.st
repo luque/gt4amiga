@@ -20,8 +20,6 @@ Class {
 		'bplcon0',
 		'ddfstrt',
 		'ddfstop',
-		'running',
-		'generation',
 		'cells',
 		'owners',
 		'summaryLabel',
@@ -42,13 +40,11 @@ GT4AmigaDMATimelineElement >> setMachine: aMachine [
 	bplcon0 := machine catalog at: 'BPLCON0'.
 	ddfstrt := machine catalog at: 'DDFSTRT'.
 	ddfstop := machine catalog at: 'DDFSTOP'.
-	running := false.
-	generation := 0.
 	self size: 724 @ 214.
 	self buildTimeline.
 	self updateFromCache.
-	self addEventHandlerOn: BlElementAddedToSceneGraphEvent do: [ :evt | self startWorker ].
-	self addEventHandlerOn: BlElementRemovedFromSceneGraphEvent do: [ :evt | self stopWorker ]
+	self addEventHandlerOn: BlElementAddedToSceneGraphEvent do: [ :evt | self startObserving ].
+	self addEventHandlerOn: BlElementRemovedFromSceneGraphEvent do: [ :evt | self stopObserving ]
 ]
 
 { #category : #'building' }
@@ -290,48 +286,34 @@ GT4AmigaDMATimelineElement >> summaryString [
 ]
 
 { #category : #'accessing' }
-GT4AmigaDMATimelineElement >> isRunning [
-	^ running
+GT4AmigaDMATimelineElement >> observationNeeds [
+	"What the shared gateway must keep fresh for me: the four registers
+	 that drive the figure. The three copper-derived reads (BPLCON0/DDF*)
+	 share the gateway's one cached copper-list snapshot per sweep."
+	^ { dmacon. bplcon0. ddfstrt. ddfstop }
 ]
 
-{ #category : #'worker' }
-GT4AmigaDMATimelineElement >> startWorker [
-	"The generation stamp retires a previous loop that survived a quick
-	 detach/re-attach (inspector tabs, exporters) while blocked in serial
-	 I/O - re-arming the shared running flag must not leave two loops."
-	| myGeneration |
-	running ifTrue: [ ^ self ].
-	running := true.
-	generation := generation + 1.
-	myGeneration := generation.
+{ #category : #'testing' }
+GT4AmigaDMATimelineElement >> isObserving [
+	^ machine catalog observer isWatching: self
+]
+
+{ #category : #'observing' }
+GT4AmigaDMATimelineElement >> startObserving [
 	machine catalog announcer unsubscribe: self.
 	machine catalog announcer when: GT4AmigaRegistersRefreshed send: #onRefreshed to: self.
-	[ self workerLoopGeneration: myGeneration ]
-		forkAt: Processor userBackgroundPriority
-		named: 'GT4Amiga DMA timeline worker'
+	machine catalog observer watch: self observationNeeds for: self
 ]
 
-{ #category : #'worker' }
-GT4AmigaDMATimelineElement >> stopWorker [
-	running := false.
-	machine catalog announcer unsubscribe: self
-]
-
-{ #category : #'worker' }
-GT4AmigaDMATimelineElement >> workerLoopGeneration: myGeneration [
-	"Poll the four driving registers every 2 seconds and announce; the
-	 three copper-derived reads share one cached copper-list snapshot.
-	 A dead link must not kill the loop (read keeps the previous cache)."
-	[ running and: [ generation = myGeneration ] ] whileTrue: [
-		[ dmacon read. bplcon0 read. ddfstrt read. ddfstop read.
-		machine catalog announcer announce: GT4AmigaRegistersRefreshed new ]
-			on: Error do: [ :e | ].
-		(Delay forMilliseconds: 2000) wait ]
+{ #category : #'observing' }
+GT4AmigaDMATimelineElement >> stopObserving [
+	machine catalog announcer unsubscribe: self.
+	machine catalog observer unwatch: self
 ]
 
 { #category : #'updating' }
 GT4AmigaDMATimelineElement >> onRefreshed [
-	"Announced from a worker: hop to the UI thread to repaint."
+	"Announced from the gateway: hop to the UI thread to repaint."
 	self enqueueTask: (BlTaskAction new action: [ self updateFromCache ])
 ]
 

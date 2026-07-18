@@ -1,10 +1,7 @@
 "
 The A500 as a clickable block diagram: the 68000, the three custom chips, the CIAs, the three memory regions, and the buses between them. Every box is a door into the model - clicking it spawns the corresponding GT4AmigaChip or GT4AmigaMemoryRegion in the inspector - and the DMA arrows are LIVE: each lights up when the DMACON bits that drive it are enabled (bitplanes/sprites toward Denise, audio/disk toward Paula, the RAM funnel under the DMAEN master), and the Copper and blitter LEDs sit inside Agnus, where those engines physically live. Kill DMAEN in the control panel and watch every arrow go dark.
 
-Threading contract (project rule: no serial I/O on the UI thread):
-- a background worker polls DMACON every 2 seconds while I am in the scene graph and announces GT4AmigaRegistersRefreshed on the catalog announcer (the same announcement the control panel uses, so either element keeps the other fresh);
-- the announcement handler repaints arrows and LEDs from the register CACHE via an enqueued Bloc task;
-- the worker starts when I enter the scene graph and stops when I leave it, so closing the inspector leaves no orphan process behind.
+Threading contract (project rule: no serial I/O on the UI thread): I run NO polling loop of my own. On entering the scene graph I subscribe to the catalog's shared serial gateway (GT4AmigaChipRegisters>>observer) declaring my observationNeeds - just DMACON; the gateway keeps it fresh for every view with a single de-duplicated reader and announces GT4AmigaRegistersRefreshed, which repaints my arrows and LEDs from the register CACHE on the UI thread. On leaving the scene graph I unwatch.
 
 Open me with: GT4AmigaBlockDiagramElement onMachine: GT4AmigaMachine default - or inspect the machine and pick the Block diagram view.
 "
@@ -14,7 +11,6 @@ Class {
 	#instVars : [
 		'machine',
 		'dmacon',
-		'running',
 		'litLines',
 		'copLed',
 		'bltLed'
@@ -31,13 +27,12 @@ GT4AmigaBlockDiagramElement class >> onMachine: aMachine [
 GT4AmigaBlockDiagramElement >> setMachine: aMachine [
 	machine := aMachine.
 	dmacon := machine catalog at: 'DMACON'.
-	running := false.
 	litLines := OrderedCollection new.
 	self size: 680 @ 360.
 	self buildDiagram.
 	self updateFromCache.
-	self addEventHandlerOn: BlElementAddedToSceneGraphEvent do: [ :evt | self startWorker ].
-	self addEventHandlerOn: BlElementRemovedFromSceneGraphEvent do: [ :evt | self stopWorker ]
+	self addEventHandlerOn: BlElementAddedToSceneGraphEvent do: [ :evt | self startObserving ].
+	self addEventHandlerOn: BlElementRemovedFromSceneGraphEvent do: [ :evt | self stopObserving ]
 ]
 
 { #category : #'building' }
@@ -182,41 +177,33 @@ GT4AmigaBlockDiagramElement >> bit: aFieldName [
 ]
 
 { #category : #'accessing' }
-GT4AmigaBlockDiagramElement >> isRunning [
-	^ running
+GT4AmigaBlockDiagramElement >> observationNeeds [
+	"What the shared gateway must keep fresh for me: the DMACON bits that
+	 light the DMA arrows and the COP/BLT LEDs."
+	^ { dmacon }
 ]
 
-{ #category : #'worker' }
-GT4AmigaBlockDiagramElement >> startWorker [
-	running ifTrue: [ ^ self ].
-	running := true.
+{ #category : #'testing' }
+GT4AmigaBlockDiagramElement >> isObserving [
+	^ machine catalog observer isWatching: self
+]
+
+{ #category : #'observing' }
+GT4AmigaBlockDiagramElement >> startObserving [
 	machine catalog announcer unsubscribe: self.
 	machine catalog announcer when: GT4AmigaRegistersRefreshed send: #onRefreshed to: self.
-	[ self workerLoop ]
-		forkAt: Processor userBackgroundPriority
-		named: 'GT4Amiga block diagram worker'
+	machine catalog observer watch: self observationNeeds for: self
 ]
 
-{ #category : #'worker' }
-GT4AmigaBlockDiagramElement >> stopWorker [
-	running := false.
-	machine catalog announcer unsubscribe: self
-]
-
-{ #category : #'worker' }
-GT4AmigaBlockDiagramElement >> workerLoop [
-	"Poll DMACON every 2 seconds and announce; a dead link must not kill
-	 the loop (read keeps the previous cache on nil)."
-	[ running ] whileTrue: [
-		[ dmacon read.
-		machine catalog announcer announce: GT4AmigaRegistersRefreshed new ]
-			on: Error do: [ :e | ].
-		(Delay forMilliseconds: 2000) wait ]
+{ #category : #'observing' }
+GT4AmigaBlockDiagramElement >> stopObserving [
+	machine catalog announcer unsubscribe: self.
+	machine catalog observer unwatch: self
 ]
 
 { #category : #'updating' }
 GT4AmigaBlockDiagramElement >> onRefreshed [
-	"Announced from a worker: hop to the UI thread to repaint."
+	"Announced from the gateway: hop to the UI thread to repaint."
 	self enqueueTask: (BlTaskAction new action: [ self updateFromCache ])
 ]
 
