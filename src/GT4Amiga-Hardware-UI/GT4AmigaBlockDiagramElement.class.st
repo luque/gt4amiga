@@ -191,7 +191,7 @@ GT4AmigaBlockDiagramElement >> isObserving [
 { #category : #'observing' }
 GT4AmigaBlockDiagramElement >> startObserving [
 	machine catalog announcer unsubscribe: self.
-	machine catalog announcer when: GT4AmigaRegistersRefreshed send: #onRefreshed to: self.
+	machine catalog announcer weak when: GT4AmigaRegistersRefreshed send: #onRefreshed to: self.
 	machine catalog observer watch: self observationNeeds for: self
 ]
 

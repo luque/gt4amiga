@@ -67,7 +67,7 @@ GT4AmigaControlPanelElement >> enqueue: aBlock [
 { #category : #'observing' }
 GT4AmigaControlPanelElement >> startObserving [
 	catalog announcer unsubscribe: self.
-	catalog announcer when: GT4AmigaRegistersRefreshed send: #onRefreshed to: self.
+	catalog announcer weak when: GT4AmigaRegistersRefreshed send: #onRefreshed to: self.
 	catalog observer watch: self observationNeeds for: self
 ]
 

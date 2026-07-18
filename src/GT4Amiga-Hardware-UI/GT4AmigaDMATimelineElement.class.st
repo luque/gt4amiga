@@ -301,7 +301,7 @@ GT4AmigaDMATimelineElement >> isObserving [
 { #category : #'observing' }
 GT4AmigaDMATimelineElement >> startObserving [
 	machine catalog announcer unsubscribe: self.
-	machine catalog announcer when: GT4AmigaRegistersRefreshed send: #onRefreshed to: self.
+	machine catalog announcer weak when: GT4AmigaRegistersRefreshed send: #onRefreshed to: self.
 	machine catalog observer watch: self observationNeeds for: self
 ]
 

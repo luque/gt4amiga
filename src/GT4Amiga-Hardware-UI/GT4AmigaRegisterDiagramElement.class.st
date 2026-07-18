@@ -265,7 +265,7 @@ GT4AmigaRegisterDiagramElement >> startObserving [
 	"On entering the scene graph: listen for refreshes and ask the shared
 	 gateway to keep my register fresh. No polling loop of my own."
 	register catalog announcer unsubscribe: self.
-	register catalog announcer when: GT4AmigaRegistersRefreshed send: #onRefreshed to: self.
+	register catalog announcer weak when: GT4AmigaRegistersRefreshed send: #onRefreshed to: self.
 	register catalog observer watch: self observationNeeds for: self
 ]
 
