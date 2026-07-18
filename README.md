@@ -11,9 +11,15 @@ Amiga ChipLab turns a running Amiga (real or emulated) into objects you inspect 
 ## What you get
 
 - **The chipset as live objects** — the custom registers modeled with their real access semantics (`#read`/`#write`/`#setClear`/`#strobe`), decoded bit by bit. Read them, and toggle the safe ones with a click — a write-safety policy marks which bits would cut the monitor link or hold a task, so play never bricks the machine.
-  <!-- screenshot: register Diagram view + Control Panel -->
+  <p>
+    <img src="docs/images/control-panel.png" width="720" alt="Live DMACON and INTENA control panel: every writable bit a switch, link-critical bits locked in red"><br>
+    <img src="docs/images/register-diagram.png" width="497" alt="DMACON as a live bit diagram, decoded field by field">
+  </p>
 - **Living figures of the Hardware Reference Manual** — the DMA time-slot-per-scanline diagram (AHRM fig. 6-9) and the machine's block diagram, coloured from the *real* BPLCON0/DMACON/DDF read out of Workbench's own copper list — not static images.
-  <!-- screenshot: DMA time-slot figure + block diagram -->
+  <p>
+    <img src="docs/images/dma-timeslots.png" width="724" alt="The DMA time-slot-per-scanline figure (AHRM fig. 6-9), coloured from the live BPLCON0/DDFSTRT/DDFSTOP"><br>
+    <img src="docs/images/block-diagram.png" width="680" alt="The A500 as a live block diagram, DMA arrows lit from the live DMACON">
+  </p>
 - **Drive the Amiga from a UI, in real time** — a GToolkit slider moving a Copper colour-split line, or the Workbench background colour, on the real screen — round-tripped over the monitor while you drag.
   <!-- screenshot/GIF: slider driving a live color change -->
 - **Assemble and run, instantly** — from an annotated Hello World to native Copper bars at 50 fps in the vertical blank, written in a page and run as their own AmigaDOS process while the monitor keeps serving live commands.
