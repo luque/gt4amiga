@@ -23,7 +23,7 @@ Amiga ChipLab convierte un Amiga en marcha (real o emulado) en objetos que inspe
 - **Maneja el Amiga desde una UI, en tiempo real** — un slider de GToolkit moviendo una línea de split de color del Copper, o el color de fondo de Workbench, en la pantalla real — de ida y vuelta por el monitor mientras arrastras.
   <p><img src="docs/images/live-color.gif" width="600" alt="El fondo de Workbench recorriendo el arcoíris, cada color una llamada SetRGB4 dirigida en vivo por el monitor"></p>
 - **Ensambla y ejecuta, al instante** — desde un Hola Mundo anotado hasta copper bars nativas a 50 fps en el blanking vertical, escritas en una página y ejecutadas como su propio proceso de AmigaDOS mientras el monitor sigue sirviendo comandos en vivo.
-  <p><img src="docs/images/copper-bars.png" width="620" alt="Tres copper rasterbars con sombreado senoidal corriendo de forma nativa en el Amiga a 50 fps"></p>
+  <p><img src="docs/images/copper-bars.gif" width="620" alt="Tres copper rasterbars con sombreado senoidal derivando en el Amiga a 50 fps, animadas de forma nativa por el 68000 en el blanking vertical"></p>
 - **Un monitor residente** — lee/escribe memoria y registros del chip, llama a cualquier función de librería de AmigaOS, y ejecuta programas, sobre un pequeño protocolo binario enmarcado (serie bajo FS-UAE, TCP en hardware real).
 
 Las páginas Lepiter actuales se distribuyen como **cuadernos de ejemplo** que muestran lo que la plataforma puede hacer; los **libros** de enseñanza completos (un AHRM vivo, programación de videojuegos, 68000) se construyen sobre estos modelos y viven en [sus propios repositorios](#libros-construidos-sobre-amiga-chiplab).
