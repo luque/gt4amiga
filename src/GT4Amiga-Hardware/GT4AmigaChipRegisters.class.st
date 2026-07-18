@@ -21,6 +21,7 @@ Class {
 		'monitor',
 		'registers',
 		'announcer',
+		'observer',
 		'wbColorMap',
 		'gfxBase',
 		'copperSnapshot',
@@ -63,6 +64,14 @@ GT4AmigaChipRegisters >> monitor: aMonitorClient [
 { #category : #'accessing' }
 GT4AmigaChipRegisters >> announcer [
 	^ announcer
+]
+
+{ #category : #'accessing' }
+GT4AmigaChipRegisters >> observer [
+	"The single serial gateway (GT4AmigaHardwareObserver) that keeps the
+	 watched registers fresh for every live view - one background reader,
+	 never a per-view polling loop. Lazily created, shared for the session."
+	^ observer ifNil: [ observer := GT4AmigaHardwareObserver on: self ]
 ]
 
 { #category : #'accessing' }

@@ -10,7 +10,7 @@ Writing is gated by the model's write-safety policy (GT4AmigaChipRegister>>write
   #protocol       the SETCLR command bit - pale, carries no state
   #unused         a bit outside every field - pale, still showing its value
 
-Threading contract (project rule: no serial I/O on the UI thread): clicks only enqueue a toggle; ONE background worker drains the queue (performs the write, reads the register back, announces GT4AmigaRegistersRefreshed on the catalog announcer), and polls the register every 2 seconds while idle so the figure also reflects changes made from anywhere else. The announcement handler repaints from the CACHE on the UI thread. The worker starts when I enter the scene graph and stops when I leave it; a generation stamp retires a loop left over from a quick detach/re-attach (inspector tabs, exporters) without terminating it mid-frame-exchange (terminating a worker inside sendFrame leaves the client's I/O mutex owned by a dead process - let the loop retire itself instead).
+Threading contract (project rule: no serial I/O on the UI thread): I run NO polling loop of my own. On entering the scene graph I subscribe to the catalog's shared serial gateway (GT4AmigaChipRegisters>>observer, a GT4AmigaHardwareObserver) declaring my observationNeeds - just my one register; the gateway keeps it fresh for me (and for every other view, with a single de-duplicated reader) and announces GT4AmigaRegistersRefreshed, which repaints me from the CACHE on the UI thread. A click does not talk to the machine either: it hands a toggle block to the gateway's write queue, serialized with the reads. On leaving the scene graph I unwatch. This is the first view migrated to the shared-observer model, so no two live views ever contend for the monitor's single socket.
 
 Open me with: GT4AmigaRegisterDiagramElement onRegister: (GT4AmigaChipRegisters default at: 'DMACON') - or just inspect any register and pick the Diagram view.
 "
@@ -19,10 +19,6 @@ Class {
 	#superclass : #BlElement,
 	#instVars : [
 		'register',
-		'queue',
-		'mutex',
-		'running',
-		'generation',
 		'valueLabel',
 		'swatch',
 		'cells',
@@ -39,10 +35,6 @@ GT4AmigaRegisterDiagramElement class >> onRegister: aRegister [
 { #category : #'instance creation' }
 GT4AmigaRegisterDiagramElement >> setRegister: aRegister [
 	register := aRegister.
-	queue := OrderedCollection new.
-	mutex := Mutex new.
-	running := false.
-	generation := 0.
 	cells := OrderedCollection new.
 	decodedLabels := Dictionary new.
 	self layout: BlLinearLayout vertical.
@@ -53,8 +45,8 @@ GT4AmigaRegisterDiagramElement >> setRegister: aRegister [
 	self addChild: self buildHeader.
 	self addChild: self buildBitRow.
 	self updateFromCache.
-	self addEventHandlerOn: BlElementAddedToSceneGraphEvent do: [ :evt | self startWorker ].
-	self addEventHandlerOn: BlElementRemovedFromSceneGraphEvent do: [ :evt | self stopWorker ]
+	self addEventHandlerOn: BlElementAddedToSceneGraphEvent do: [ :evt | self startObserving ].
+	self addEventHandlerOn: BlElementRemovedFromSceneGraphEvent do: [ :evt | self stopObserving ]
 ]
 
 { #category : #'accessing' }
@@ -63,8 +55,14 @@ GT4AmigaRegisterDiagramElement >> register [
 ]
 
 { #category : #'accessing' }
-GT4AmigaRegisterDiagramElement >> isRunning [
-	^ running
+GT4AmigaRegisterDiagramElement >> observationNeeds [
+	"What the shared gateway must keep fresh for me: just my register."
+	^ { register }
+]
+
+{ #category : #'testing' }
+GT4AmigaRegisterDiagramElement >> isObserving [
+	^ register catalog observer isWatching: self
 ]
 
 { #category : #'testing' }
@@ -254,79 +252,34 @@ GT4AmigaRegisterDiagramElement >> tooltipForBit: aBit field: aFieldOrNil kind: a
 
 { #category : #'actions' }
 GT4AmigaRegisterDiagramElement >> toggleField: aField [
-	"Clicks never touch the machine directly: hand the toggle to the
-	 worker queue and return. Only #writable fields ever reach here."
+	"Clicks never touch the machine directly: hand the toggle to the shared
+	 gateway's write queue (serialized with the reads) and return. Only
+	 #writable fields ever reach here."
 	| reg |
 	reg := register.
-	self enqueue: [ reg toggleField: aField ]
+	register catalog observer enqueueWrite: [ reg toggleField: aField ]
 ]
 
-{ #category : #'worker' }
-GT4AmigaRegisterDiagramElement >> enqueue: aBlock [
-	mutex critical: [ queue addLast: aBlock ]
-]
-
-{ #category : #'worker' }
-GT4AmigaRegisterDiagramElement >> startWorker [
-	"The generation stamp retires a previous loop that survived a quick
-	 detach/re-attach (inspector tabs, exporters) while blocked in serial
-	 I/O - re-arming the shared running flag must not leave two loops."
-	| myGeneration |
-	running ifTrue: [ ^ self ].
-	running := true.
-	generation := generation + 1.
-	myGeneration := generation.
+{ #category : #'observing' }
+GT4AmigaRegisterDiagramElement >> startObserving [
+	"On entering the scene graph: listen for refreshes and ask the shared
+	 gateway to keep my register fresh. No polling loop of my own."
 	register catalog announcer unsubscribe: self.
 	register catalog announcer when: GT4AmigaRegistersRefreshed send: #onRefreshed to: self.
-	[ self workerLoopGeneration: myGeneration ]
-		forkAt: Processor userBackgroundPriority
-		named: 'GT4Amiga register diagram worker'
+	register catalog observer watch: self observationNeeds for: self
 ]
 
-{ #category : #'worker' }
-GT4AmigaRegisterDiagramElement >> stopWorker [
-	running := false.
-	register catalog announcer unsubscribe: self
-]
-
-{ #category : #'worker' }
-GT4AmigaRegisterDiagramElement >> workerLoopGeneration: myGeneration [
-	"Drain enqueued toggles, and poll the register every 2 seconds. A dead
-	 link must not kill the loop (read keeps the previous cache)."
-	| idleMs |
-	idleMs := 0.
-	self pollRegister.
-	[ running and: [ generation = myGeneration ] ] whileTrue: [
-		| action |
-		action := mutex critical: [
-			queue isEmpty
-				ifTrue: [ nil ]
-				ifFalse: [ queue removeFirst ] ].
-		action
-			ifNotNil: [
-				[ action value ] on: Error do: [ :e | ].
-				self pollRegister.
-				idleMs := 0 ]
-			ifNil: [
-				(Delay forMilliseconds: 200) wait.
-				idleMs := idleMs + 200.
-				idleMs >= 2000 ifTrue: [
-					self pollRegister.
-					idleMs := 0 ] ] ]
-]
-
-{ #category : #'worker' }
-GT4AmigaRegisterDiagramElement >> pollRegister [
-	"Serial I/O - worker only. A dead link must not kill the loop."
-	[ register read.
-	register catalog announcer announce: GT4AmigaRegistersRefreshed new ]
-		on: Error
-		do: [ :e | ]
+{ #category : #'observing' }
+GT4AmigaRegisterDiagramElement >> stopObserving [
+	"On leaving the scene graph: stop listening and drop my need from the
+	 gateway (which idles when nothing is left to watch)."
+	register catalog announcer unsubscribe: self.
+	register catalog observer unwatch: self
 ]
 
 { #category : #'updating' }
 GT4AmigaRegisterDiagramElement >> onRefreshed [
-	"Announced from a worker: hop to the UI thread to repaint."
+	"Announced from the gateway: hop to the UI thread to repaint."
 	self enqueueTask: (BlTaskAction new action: [ self updateFromCache ])
 ]
 
