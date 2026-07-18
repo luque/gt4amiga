@@ -21,7 +21,7 @@ Amiga ChipLab convierte un Amiga en marcha (real o emulado) en objetos que inspe
     <img src="docs/images/block-diagram.png" width="680" alt="El A500 como diagrama de bloques vivo, con las flechas de DMA encendidas desde el DMACON vivo">
   </p>
 - **Maneja el Amiga desde una UI, en tiempo real** — un slider de GToolkit moviendo una línea de split de color del Copper, o el color de fondo de Workbench, en la pantalla real — de ida y vuelta por el monitor mientras arrastras.
-  <p><img src="docs/images/live-color.gif" width="600" alt="El fondo de Workbench recorriendo el arcoíris, cada color una llamada SetRGB4 dirigida en vivo por el monitor"></p>
+  <p><img src="docs/images/live-color.gif" width="560" alt="Un slider en el cuaderno de GToolkit arrastrando el fondo de Workbench de azul a rojo en tiempo real por el monitor: el pulgar del slider y la pantalla del Amiga se mueven a la vez"></p>
 - **Ensambla y ejecuta, al instante** — desde un Hola Mundo anotado hasta copper bars nativas a 50 fps en el blanking vertical, escritas en una página y ejecutadas como su propio proceso de AmigaDOS mientras el monitor sigue sirviendo comandos en vivo.
   <p><img src="docs/images/copper-bars.gif" width="620" alt="Tres copper rasterbars con sombreado senoidal derivando en el Amiga a 50 fps, animadas de forma nativa por el 68000 en el blanking vertical"></p>
 - **Un monitor residente** — lee/escribe memoria y registros del chip, llama a cualquier función de librería de AmigaOS, y ejecuta programas, sobre un pequeño protocolo binario enmarcado (serie bajo FS-UAE, TCP en hardware real).
